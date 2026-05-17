@@ -1,0 +1,239 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import { OrdersTable } from '@/components/orders/orders-table';
+import { OrderFormDialog } from '@/components/orders/order-form-dialog';
+import { OrdersFilter, OrdersFilterValues } from '@/components/orders/orders-filter';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, Upload } from 'lucide-react';
+import { Order, Driver, Location } from '@/lib/types';
+import { TableSkeleton } from '@/components/ui/loading-skeletons';
+import {
+  getOrders,
+  getDrivers,
+  getLocations,
+  createOrder,
+  updateOrder,
+  deleteOrder,
+  filterOrders,
+  hasOrderFilter,
+} from '@/lib/services';
+import { BulkUploadDialog, ParsedOrder } from '@/components/orders/bulk-upload-dialog';
+
+export default function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [filters, setFilters] = useState<OrdersFilterValues | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    setLoading(true);
+    const [ordersData, driversData, locationsData] = await Promise.all([
+      getOrders(),
+      getDrivers(),
+      getLocations(),
+    ]);
+    setOrders(ordersData);
+    setDrivers(driversData);
+    setLocations(locationsData);
+    setLoading(false);
+  }
+
+  function handleAddOrder() {
+    setEditingOrder(null);
+    setFormOpen(true);
+  }
+
+  function handleEditOrder(order: Order) {
+    setEditingOrder(order);
+    setFormOpen(true);
+  }
+
+  function handleDeleteClick(order: Order) {
+    setOrderToDelete(order);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (orderToDelete) {
+      await deleteOrder(orderToDelete.id);
+      setOrders(orders.filter((o) => o.id !== orderToDelete.id));
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+    }
+  }
+
+  async function handleSaveOrder(
+    orderData: Omit<Order, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt'> | Order
+  ) {
+    if ('id' in orderData && 'trackingCode' in orderData) {
+      // Update existing order
+      const updated = await updateOrder(orderData.id, orderData);
+      setOrders(orders.map((o) => (o.id === updated.id ? updated : o)));
+    } else {
+      // Create new order
+      const created = await createOrder(orderData);
+      setOrders([...orders, created]);
+    }
+  }
+
+  async function handleBulkUpload(parsedOrders: ParsedOrder[]) {
+    const results: Order[] = [];
+    for (const parsedOrder of parsedOrders) {
+      const orderData = {
+        address: '',
+        assignType: 'AI' as const,
+        contactPerson: parsedOrder.contactPerson,
+        deliveryTime: parsedOrder.deliveryTime,
+        description: parsedOrder.description,
+        status: 'pending' as const,
+        mobile: parsedOrder.mobile,
+        locationName: null,
+        returnTime: parsedOrder.returnTime,
+        productCode: parsedOrder.productCode,
+        lat: null,
+        lng: null,
+        pickupPlaceId: parsedOrder.pickupLocationId,
+        dropoffPlaceId: parsedOrder.dropoffLocationId,
+        driver: null,
+        driverId: null,
+      };
+      const created = await createOrder(orderData);
+      results.push(created);
+    }
+    setOrders([...orders, ...results]);
+  }
+
+  async function handleFilter(filterValues: OrdersFilterValues) {
+    const active = hasOrderFilter(filterValues);
+    setFilters(active ? filterValues : null);
+    setLoading(true);
+    try {
+      const data = active ? await filterOrders(filterValues) : await getOrders();
+      setOrders(data);
+    } catch (e) {
+      console.error(e);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleClearFilter() {
+    setFilters(null);
+    setLoading(true);
+    try {
+      const data = await getOrders();
+      setOrders(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const isFiltered = filters !== null;
+
+  return (
+    <DashboardLayout title="سفارشات">
+      <OrdersFilter 
+        drivers={drivers} 
+        onFilter={handleFilter} 
+        onClear={handleClearFilter} 
+      />
+
+      <Card className="bg-card border-border">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-foreground">مدیریت سفارشات</CardTitle>
+            {isFiltered && (
+              <span className="text-sm text-muted-foreground">
+                (فیلتر شده: {orders.length} سفارش)
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setBulkUploadOpen(true)} variant="outline" className="border-border">
+              <Upload className="h-4 w-4 ml-2" />
+              آپلود سفارشات (اکسل)
+            </Button>
+            <Button onClick={handleAddOrder} className="bg-primary text-primary-foreground">
+              <Plus className="h-4 w-4 ml-2" />
+              افزودن سفارش
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <TableSkeleton columns={7} rows={6} />
+          ) : (
+            <OrdersTable
+              orders={orders}
+              onEdit={handleEditOrder}
+              onDelete={handleDeleteClick}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <OrderFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        order={editingOrder}
+        drivers={drivers}
+        locations={locations}
+        onSave={handleSaveOrder}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">
+              حذف سفارش
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              آیا مطمئن هستید که می‌خواهید سفارش با کد پیگیری «
+              {orderToDelete?.trackingCode}» را حذف کنید؟ این عمل قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="border-border">انصراف</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <BulkUploadDialog
+        open={bulkUploadOpen}
+        onOpenChange={setBulkUploadOpen}
+        locations={locations}
+        onUpload={handleBulkUpload}
+      />
+    </DashboardLayout>
+  );
+}
