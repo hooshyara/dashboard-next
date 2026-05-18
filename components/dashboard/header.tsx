@@ -1,6 +1,8 @@
 'use client';
 
-import { Search, Bell, User } from 'lucide-react';
+import { Search, Bell, User, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +23,7 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const { profile } = useAuth();
+  const router = useRouter();
   const displayName =
     (typeof profile?.name === 'string' && profile.name) ||
     (typeof profile?.phone === 'string' && profile.phone) ||
@@ -29,6 +32,22 @@ export function Header({ title }: HeaderProps) {
     (typeof profile?.email === 'string' && profile.email) ||
     (typeof profile?.phone === 'string' && profile.phone) ||
     '';
+
+  const handleLogout = () => {
+    // Clear all cookies
+    const allCookies = Cookies.get();
+    Object.keys(allCookies).forEach((cookieName) => {
+      Cookies.remove(cookieName, { path: '/' });
+    });
+
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+    }
+
+    // Redirect to login page
+    router.push('/login');
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-8 no-print">
@@ -86,7 +105,13 @@ export function Header({ title }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem>پروفایل</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">خروج</DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-destructive cursor-pointer"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 ml-2" />
+              خروج
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

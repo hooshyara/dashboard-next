@@ -20,19 +20,49 @@ export type UserRole = 'ADMIN' | 'MANAGER' | 'OPERATOR' | 'DRIVER';
 export type UserStatus = 'ACTIVE' | 'INACTIVE';
 
 export type Permission = 
-  | 'VIEW_DASHBOARD'
-  | 'MANAGE_DRIVERS'
-  | 'MANAGE_ORDERS'
-  | 'MANAGE_DELIVERY'
-  | 'MANAGE_USERS'
-  | 'VIEW_REPORTS'
-  | 'EDIT_SETTINGS';
+  | 'driver:create'
+  | 'driver:read'
+  | 'driver:update'
+  | 'driver:delete'
+  | 'driver:filter'
+  | 'order:create'
+  | 'order:read'
+  | 'order:update'
+  | 'order:delete'
+  | 'order:filter'
+  | 'order:report'
+  | 'place:create'
+  | 'place:read'
+  | 'place:update'
+  | 'place:delete'
+  | 'permission:create'
+  | 'permission:read'
+  | 'permission:update'
+  | 'permission:delete'
+  | 'optimizer:run'
+  | 'user:permission:update';
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  ADMIN: ['VIEW_DASHBOARD', 'MANAGE_DRIVERS', 'MANAGE_ORDERS', 'MANAGE_DELIVERY', 'MANAGE_USERS', 'VIEW_REPORTS', 'EDIT_SETTINGS'],
-  MANAGER: ['VIEW_DASHBOARD', 'MANAGE_DRIVERS', 'MANAGE_ORDERS', 'MANAGE_DELIVERY', 'VIEW_REPORTS'],
-  OPERATOR: ['VIEW_DASHBOARD', 'MANAGE_ORDERS', 'MANAGE_DELIVERY'],
-  DRIVER: ['VIEW_DASHBOARD'],
+  ADMIN: [
+    'driver:create', 'driver:read', 'driver:update', 'driver:delete', 'driver:filter',
+    'order:create', 'order:read', 'order:update', 'order:delete', 'order:filter', 'order:report',
+    'place:create', 'place:read', 'place:update', 'place:delete',
+    'permission:create', 'permission:read', 'permission:update', 'permission:delete',
+    'optimizer:run', 'user:permission:update'
+  ],
+  MANAGER: [
+    'driver:read', 'driver:filter',
+    'order:create', 'order:read', 'order:update', 'order:filter', 'order:report',
+    'place:create', 'place:read', 'place:update',
+    'optimizer:run'
+  ],
+  OPERATOR: [
+    'order:create', 'order:read', 'order:update', 'order:filter',
+    'place:read'
+  ],
+  DRIVER: [
+    'order:read'
+  ],
 };
 
 export interface User {

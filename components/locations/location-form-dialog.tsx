@@ -61,7 +61,11 @@ export function LocationFormDialog({
 
   const handleMapPickerConfirm = (lat: number, lng: number) => {
     setFormData((prev) => ({ ...prev, lat, lng }));
-    setMapPickerOpen(false);
+    // setMapPickerOpen(false) is now handled inside MapPickerModal
+  };
+
+  const handleMapPickerOpenChange = (open: boolean) => {
+    setMapPickerOpen(open);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -181,7 +185,7 @@ export function LocationFormDialog({
 
       <MapPickerModal
         open={mapPickerOpen}
-        onOpenChange={setMapPickerOpen}
+        onOpenChange={handleMapPickerOpenChange}
         initialLat={formData.lat}
         initialLng={formData.lng}
         onSelect={handleMapPickerConfirm}

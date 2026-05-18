@@ -156,6 +156,8 @@ export function MapPickerModal({
 
   const handleConfirm = () => {
     onSelect(selectedLat, selectedLng);
+    // Only close the map picker modal, not the parent
+    onOpenChange(false);
   };
 
   const handleReset = () => {

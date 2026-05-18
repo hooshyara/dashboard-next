@@ -87,13 +87,37 @@ function SortableRow({ driver, onEdit, onToggleActive, onMoveUp, onMoveDown, isF
       )}
     >
       <TableCell className="w-10">
-        <button
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
-        >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <div className="flex flex-col gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onMoveUp?.(driver)}
+              disabled={isFirst}
+              className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              title="بالا بردن اولویت"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onMoveDown?.(driver)}
+              disabled={isLast}
+              className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              title="پایین بردن اولویت"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </TableCell>
       {/* <TableCell className="font-mono text-muted-foreground">
         {driver.id}
@@ -124,28 +148,6 @@ function SortableRow({ driver, onEdit, onToggleActive, onMoveUp, onMoveDown, isF
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
-          <div className="flex flex-col gap-0.5 mr-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onMoveUp?.(driver)}
-              disabled={isFirst}
-              className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:opacity-30"
-              title="بالا بردن اولویت"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onMoveDown?.(driver)}
-              disabled={isLast}
-              className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:opacity-30"
-              title="پایین بردن اولویت"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </div>
           <Button
             variant="ghost"
             size="icon"

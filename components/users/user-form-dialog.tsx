@@ -48,23 +48,59 @@ const roleLabels: Record<UserRole, string> = {
 };
 
 const permissionLabels: Record<Permission, string> = {
-  VIEW_DASHBOARD: 'مشاهده داشبورد',
-  MANAGE_DRIVERS: 'مدیریت رانندگان',
-  MANAGE_ORDERS: 'مدیریت سفارشات',
-  MANAGE_DELIVERY: 'مدیریت ارسال',
-  MANAGE_USERS: 'مدیریت کاربران',
-  VIEW_REPORTS: 'مشاهده گزارشات',
-  EDIT_SETTINGS: 'ویرایش تنظیمات',
+  'driver:create': 'ایجاد راننده',
+  'driver:read': 'مشاهده رانندگان',
+  'driver:update': 'ویرایش راننده',
+  'driver:delete': 'حذف راننده',
+  'driver:filter': 'فیلتر رانندگان',
+  'order:create': 'ثبت سفارش',
+  'order:read': 'مشاهده سفارشات',
+  'order:update': 'ویرایش سفارش',
+  'order:delete': 'حذف سفارش',
+  'order:filter': 'فیلتر سفارشات',
+  'order:report': 'گزارش‌گیری سفارشات',
+  'place:create': 'ثبت مکان/آدرس جدید',
+  'place:read': 'مشاهده مکان‌ها',
+  'place:update': 'ویرایش مکان',
+  'place:delete': 'حذف مکان',
+  'permission:create': 'ایجاد سطح دسترسی',
+  'permission:read': 'مشاهده سطوح دسترسی',
+  'permission:update': 'ویرایش سطح دسترسی',
+  'permission:delete': 'حذف سطح دسترسی',
+  'optimizer:run': 'اجرای بهینه‌ساز مسیر',
+  'user:permission:update': 'ویرایش دسترسی‌های کاربر',
 };
 
+// Group permissions by category for better UI organization
+const permissionGroups: { label: string; permissions: Permission[] }[] = [
+  {
+    label: 'رانندگان',
+    permissions: ['driver:create', 'driver:read', 'driver:update', 'driver:delete', 'driver:filter'],
+  },
+  {
+    label: 'سفارشات',
+    permissions: ['order:create', 'order:read', 'order:update', 'order:delete', 'order:filter', 'order:report'],
+  },
+  {
+    label: 'مکان‌ها',
+    permissions: ['place:create', 'place:read', 'place:update', 'place:delete'],
+  },
+  {
+    label: 'سطوح دسترسی',
+    permissions: ['permission:create', 'permission:read', 'permission:update', 'permission:delete'],
+  },
+  {
+    label: 'سایر',
+    permissions: ['optimizer:run', 'user:permission:update'],
+  },
+];
+
 const allPermissions: Permission[] = [
-  'VIEW_DASHBOARD',
-  'MANAGE_DRIVERS',
-  'MANAGE_ORDERS',
-  'MANAGE_DELIVERY',
-  'MANAGE_USERS',
-  'VIEW_REPORTS',
-  'EDIT_SETTINGS',
+  'driver:create', 'driver:read', 'driver:update', 'driver:delete', 'driver:filter',
+  'order:create', 'order:read', 'order:update', 'order:delete', 'order:filter', 'order:report',
+  'place:create', 'place:read', 'place:update', 'place:delete',
+  'permission:create', 'permission:read', 'permission:update', 'permission:delete',
+  'optimizer:run', 'user:permission:update',
 ];
 
 export function UserFormDialog({
@@ -254,21 +290,30 @@ export function UserFormDialog({
               </div>
               <div className="grid gap-2">
                 <Label className="text-foreground">دسترسی‌ها</Label>
-                <div className="grid grid-cols-2 gap-2 p-3 bg-secondary rounded-lg border border-border">
-                  {allPermissions.map((permission) => (
-                    <div key={permission} className="flex items-center gap-2">
-                      <Checkbox
-                        id={permission}
-                        checked={formData.permissions.includes(permission)}
-                        onCheckedChange={() => handlePermissionToggle(permission)}
-                        className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                      />
-                      <Label
-                        htmlFor={permission}
-                        className="text-sm text-foreground cursor-pointer"
-                      >
-                        {permissionLabels[permission]}
-                      </Label>
+                <div className="p-3 bg-secondary rounded-lg border border-border max-h-[300px] overflow-y-auto">
+                  {permissionGroups.map((group) => (
+                    <div key={group.label} className="mb-4 last:mb-0">
+                      <h4 className="text-sm font-semibold text-primary mb-2 border-b border-border pb-1">
+                        {group.label}
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.permissions.map((permission) => (
+                          <div key={permission} className="flex items-center gap-2">
+                            <Checkbox
+                              id={permission}
+                              checked={formData.permissions.includes(permission)}
+                              onCheckedChange={() => handlePermissionToggle(permission)}
+                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            />
+                            <Label
+                              htmlFor={permission}
+                              className="text-sm text-foreground cursor-pointer"
+                            >
+                              {permissionLabels[permission]}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
