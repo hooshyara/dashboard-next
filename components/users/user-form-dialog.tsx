@@ -193,7 +193,7 @@ export function UserFormDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[550px] bg-card border-border max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[550px] bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {user ? 'ویرایش کاربر' : 'افزودن کاربر جدید'}
@@ -290,7 +290,7 @@ export function UserFormDialog({
               </div>
               <div className="grid gap-2">
                 <Label className="text-foreground">دسترسی‌ها</Label>
-                <div className="p-3 bg-secondary rounded-lg border border-border max-h-[300px] overflow-y-auto">
+                <div className="p-3 bg-secondary rounded-lg border border-border max-h-[200px] overflow-y-auto">
                   {permissionGroups.map((group) => (
                     <div key={group.label} className="mb-4 last:mb-0">
                       <h4 className="text-sm font-semibold text-primary mb-2 border-b border-border pb-1">

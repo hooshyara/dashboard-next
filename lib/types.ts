@@ -177,6 +177,8 @@ export interface Log {
 export interface Location {
   id: number;
   name: string;
+  /** Alias for `name` - used in UI components */
+  title: string;
   address: string;
   lat: number;
   lng: number;

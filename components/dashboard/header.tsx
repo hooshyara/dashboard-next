@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Bell, User, LogOut } from 'lucide-react';
+import { Search, User, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { Input } from '@/components/ui/input';
@@ -73,14 +73,6 @@ export function Header({ title }: HeaderProps) {
 
         {/* Theme Toggle */}
         <ThemeToggle />
-
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-muted-foreground" />
-          <span className="absolute -top-1 -left-1 h-4 w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-            3
-          </span>
-        </Button>
 
         {/* User menu */}
         <DropdownMenu>

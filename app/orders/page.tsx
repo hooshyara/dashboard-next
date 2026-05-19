@@ -54,6 +54,13 @@ export default function OrdersPage() {
     loadData();
   }, []);
 
+  // Helper function to sort orders by newest first (descending createdAt)
+  function sortOrdersByNewest(ordersToSort: Order[]): Order[] {
+    return [...ordersToSort].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
   async function loadData() {
     setLoading(true);
     const [ordersData, driversData, locationsData] = await Promise.all([
@@ -61,7 +68,7 @@ export default function OrdersPage() {
       getDrivers(),
       getLocations(),
     ]);
-    setOrders(ordersData);
+    setOrders(sortOrdersByNewest(ordersData));
     setDrivers(driversData);
     setLocations(locationsData);
     setLoading(false);
@@ -99,11 +106,11 @@ export default function OrdersPage() {
     if ("id" in orderData && "trackingCode" in orderData) {
       // Update existing order
       const updated = await updateOrder(orderData.id, orderData);
-      setOrders(orders.map((o) => (o.id === updated.id ? updated : o)));
+      setOrders(sortOrdersByNewest(orders.map((o) => (o.id === updated.id ? updated : o))));
     } else {
-      // Create new order
+      // Create new order - add at beginning (newest first)
       const created = await createOrder(orderData);
-      setOrders([...orders, created]);
+      setOrders([created, ...orders]);
     }
   }
 
@@ -131,7 +138,8 @@ export default function OrdersPage() {
       const created = await createOrder(orderData);
       results.push(created);
     }
-    setOrders([...orders, ...results]);
+    // Sort with newest first after bulk upload
+    setOrders(sortOrdersByNewest([...orders, ...results]));
   }
 
   async function handleFilter(filterValues: OrdersFilterValues) {
@@ -142,7 +150,7 @@ export default function OrdersPage() {
       const data = active
         ? await filterOrders(filterValues)
         : await getOrders();
-      setOrders(data);
+      setOrders(sortOrdersByNewest(data));
     } catch (e) {
       console.error(e);
       setOrders([]);
@@ -156,7 +164,7 @@ export default function OrdersPage() {
     setLoading(true);
     try {
       const data = await getOrders();
-      setOrders(data);
+      setOrders(sortOrdersByNewest(data));
     } finally {
       setLoading(false);
     }

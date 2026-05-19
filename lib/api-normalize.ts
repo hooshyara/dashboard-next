@@ -180,11 +180,14 @@ export function normalizeOrder(raw: unknown): Order {
 
 export function normalizeLocation(raw: unknown): Location {
   const l = raw as UnknownRecord;
-  const name = str(l.name, '');
+  // Support both 'name' and 'title' from API
+  const name = str(l.name, '') || str(l.title, '');
+  const displayName = name || '—';
   
   return {
     id: num(l.id, 0),
-    name: name || '—',
+    name: displayName,
+    title: displayName, // Alias for backward compatibility with UI components
     address: str(l.address, ''),
     lat: num(l.lat, 0),
     lng: num(l.lng, 0),
