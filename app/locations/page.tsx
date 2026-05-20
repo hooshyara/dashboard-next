@@ -62,7 +62,6 @@ export default function LocationsPage() {
         location.description.toLowerCase().includes(search))
     );
   });
-  console.log('locations: ', locations);
   
 
   function handleAddLocation() {

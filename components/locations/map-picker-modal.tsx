@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,17 +15,21 @@ import { getNeshanMapKey } from "@/lib/neshan-map-key";
 
 import "@neshan-maps-platform/leaflet/dist/leaflet.css";
 
+export interface MapPickerModalRef {
+  updateMarker: (lat: number, lng: number) => void;
+}
+
 interface MapPickerModalProps {
   initialLat?: number;
   initialLng?: number;
   onSelect: (lat: number, lng: number) => void;
 }
 
-export function MapPickerModal({
+export const MapPickerModal = forwardRef<MapPickerModalRef, MapPickerModalProps>(function MapPickerModal({
   initialLat,
   initialLng,
   onSelect,
-}: MapPickerModalProps) {
+}, ref) {
   const [selectedLat, setSelectedLat] = useState(DEFAULT_DRIVER_LAT);
   const [selectedLng, setSelectedLng] = useState(DEFAULT_DRIVER_LNG);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,6 +58,19 @@ export function MapPickerModal({
     setMapError(null);
     setMapReady(false);
   }, []);
+
+  // Expose updateMarker method to parent via ref
+  useImperativeHandle(ref, () => ({
+    updateMarker: (lat: number, lng: number) => {
+      if (markerRef.current && mapRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+        mapRef.current.setView([lat, lng], 14);
+        setSelectedLat(lat);
+        setSelectedLng(lng);
+        onSelect(lat, lng);
+      }
+    }
+  }), [onSelect]);
 
   useEffect(() => {
     const apiKey = getNeshanMapKey();
@@ -164,4 +181,4 @@ export function MapPickerModal({
       )}
     </div>
   );
-}
+});

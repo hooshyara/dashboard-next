@@ -455,7 +455,7 @@ export function OrderFormDialog({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="contactPerson" className="text-foreground">
-                  شخص تماس *
+                  گیرنده
                 </Label>
                 <Input
                   id="contactPerson"
@@ -465,7 +465,6 @@ export function OrderFormDialog({
                   }
                   placeholder="نام شخص تحویل گیرنده"
                   className="bg-secondary border-border text-foreground"
-                  required
                 />
               </div>
             </div>
