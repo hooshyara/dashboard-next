@@ -170,6 +170,11 @@ export default function OrdersPage() {
     }
   }
 
+  // Handler for when a new location is created from the order form
+  function handleLocationCreated(location: Location) {
+    setLocations((prev) => [...prev, location]);
+  }
+
   const isFiltered = filters !== null;
 
   return (
@@ -228,6 +233,7 @@ export default function OrdersPage() {
         drivers={drivers}
         locations={locations}
         onSave={handleSaveOrder}
+        onLocationCreated={handleLocationCreated}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
