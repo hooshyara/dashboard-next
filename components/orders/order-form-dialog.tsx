@@ -22,7 +22,8 @@ import {
 import { PersianDatePicker } from '@/components/ui/persian-calendar';
 import { LocationSelect } from '@/components/orders/location-select';
 import { EmbeddedMapPicker } from '@/components/orders/embedded-map-picker';
-import { Map } from 'lucide-react';
+import { LocationFormDialog } from '@/components/locations/location-form-dialog';
+import { Map, Plus } from 'lucide-react';
 import {
   Order,
   Driver,
@@ -31,6 +32,55 @@ import {
   Location,
   ORDER_STATUS_LABEL_FA,
 } from '@/lib/types';
+import { createLocation } from '@/lib/services';
+import Cookies from 'js-cookie';
+
+// localStorage keys for last used locations
+const LAST_ORDER_ORIGIN_KEY = 'lastOrderOrigin';
+const LAST_ORDER_DESTINATION_KEY = 'lastOrderDestination';
+
+interface SavedLocation {
+  id: number;
+  name: string;
+}
+
+function getLastUsedOrigin(): SavedLocation | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(LAST_ORDER_ORIGIN_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getLastUsedDestination(): SavedLocation | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(LAST_ORDER_DESTINATION_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLastUsedOrigin(location: Location) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LAST_ORDER_ORIGIN_KEY, JSON.stringify({ id: location.id, name: location.title || location.name }));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function saveLastUsedDestination(location: Location) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LAST_ORDER_DESTINATION_KEY, JSON.stringify({ id: location.id, name: location.title || location.name }));
+  } catch {
+    // ignore storage errors
+  }
+}
 
 interface OrderFormDialogProps {
   open: boolean;
@@ -39,6 +89,7 @@ interface OrderFormDialogProps {
   drivers: Driver[];
   locations: Location[];
   onSave: (order: Omit<Order, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt'> | Order) => void | Promise<void>;
+  onLocationCreated?: (location: Location) => void;
 }
 
 const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
@@ -76,10 +127,14 @@ export function OrderFormDialog({
   drivers,
   locations,
   onSave,
+  onLocationCreated,
 }: OrderFormDialogProps) {
   const [formData, setFormData] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [pickupLocationFormOpen, setPickupLocationFormOpen] = useState(false);
+  const [dropoffLocationFormOpen, setDropoffLocationFormOpen] = useState(false);
   const isManualAssignment = formData.assignType === 'MANUAL';
+  const userId = Number(Cookies.get('userId') ?? 0);
 
   useEffect(() => {
     if (order) {
@@ -120,7 +175,41 @@ export function OrderFormDialog({
         driverId: order.driverId || null,
       });
     } else {
-      setFormData({ ...emptyForm });
+      // For new orders, load last used locations from localStorage
+      const lastOrigin = getLastUsedOrigin();
+      const lastDestination = getLastUsedDestination();
+      
+      let newForm = { ...emptyForm };
+      
+      if (lastOrigin) {
+        const originLoc = locations.find((l) => l.id === lastOrigin.id);
+        if (originLoc) {
+          newForm = {
+            ...newForm,
+            pickupLocationId: originLoc.id,
+            pickupAddress: originLoc.address,
+            pickupLocationName: originLoc.title || originLoc.name,
+            pickupLat: originLoc.lat,
+            pickupLng: originLoc.lng,
+          };
+        }
+      }
+      
+      if (lastDestination) {
+        const destLoc = locations.find((l) => l.id === lastDestination.id);
+        if (destLoc) {
+          newForm = {
+            ...newForm,
+            dropoffLocationId: destLoc.id,
+            dropoffAddress: destLoc.address,
+            dropoffLocationName: destLoc.title || destLoc.name,
+            dropoffLat: destLoc.lat,
+            dropoffLng: destLoc.lng,
+          };
+        }
+      }
+      
+      setFormData(newForm);
     }
   }, [order, open, locations]);
 
@@ -168,6 +257,38 @@ export function OrderFormDialog({
     }
   };
 
+  // Handler for creating a new pickup location
+  const handleSavePickupLocation = async (
+    locationData: Omit<Location, 'id' | 'createdAt' | 'updatedAt'> | Location
+  ) => {
+    if ('id' in locationData && 'createdAt' in locationData) return; // Skip updates, only create new
+    
+    const created = await createLocation({ ...locationData, userId });
+    
+    // Notify parent to update locations list
+    onLocationCreated?.(created);
+    
+    // Auto-select the newly created location as pickup
+    handlePickupChange(created);
+    setPickupLocationFormOpen(false);
+  };
+
+  // Handler for creating a new dropoff location
+  const handleSaveDropoffLocation = async (
+    locationData: Omit<Location, 'id' | 'createdAt' | 'updatedAt'> | Location
+  ) => {
+    if ('id' in locationData && 'createdAt' in locationData) return; // Skip updates, only create new
+    
+    const created = await createLocation({ ...locationData, userId });
+    
+    // Notify parent to update locations list
+    onLocationCreated?.(created);
+    
+    // Auto-select the newly created location as dropoff
+    handleDropoffChange(created);
+    setDropoffLocationFormOpen(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -178,6 +299,12 @@ export function OrderFormDialog({
       return;
     }
     if (formData.assignType === 'MANUAL' && !formData.driverId) return;
+
+    // Save selected locations to localStorage for next time
+    const pickupLoc = locations.find((l) => l.id === formData.pickupLocationId);
+    const dropoffLoc = locations.find((l) => l.id === formData.dropoffLocationId);
+    if (pickupLoc) saveLastUsedOrigin(pickupLoc);
+    if (dropoffLoc) saveLastUsedDestination(dropoffLoc);
 
     const selectedDriver = formData.driverId
       ? drivers.find((d) => d.id === formData.driverId) || null
@@ -231,6 +358,7 @@ export function OrderFormDialog({
     !isSaving;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -247,12 +375,26 @@ export function OrderFormDialog({
               <Label htmlFor="pickup-location" className="text-foreground">
                 آدرس مبدأ (pickupPlace) *
               </Label>
-              <LocationSelect
-                locations={locations}
-                value={formData.pickupLocationId}
-                onChange={handlePickupChange}
-                placeholder="انتخاب مبدأ از لیست..."
-              />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <LocationSelect
+                    locations={locations}
+                    value={formData.pickupLocationId}
+                    onChange={handlePickupChange}
+                    placeholder="انتخاب مبدأ از لیست..."
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setPickupLocationFormOpen(true)}
+                  className="border-border shrink-0"
+                  title="افزودن مکان جدید"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               {formData.pickupAddress && (
                 <p className="text-xs text-muted-foreground mt-1">
                   {formData.pickupAddress}
@@ -263,12 +405,26 @@ export function OrderFormDialog({
               <Label htmlFor="dropoff-location" className="text-foreground">
                 آدرس مقصد *
               </Label>
-              <LocationSelect
-                locations={locations}
-                value={formData.dropoffLocationId}
-                onChange={handleDropoffChange}
-                placeholder="انتخاب مقصد از لیست..."
-              />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <LocationSelect
+                    locations={locations}
+                    value={formData.dropoffLocationId}
+                    onChange={handleDropoffChange}
+                    placeholder="انتخاب مقصد از لیست..."
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setDropoffLocationFormOpen(true)}
+                  className="border-border shrink-0"
+                  title="افزودن مکان جدید"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               {formData.dropoffAddress && (
                 <p className="text-xs text-muted-foreground mt-1">
                   {formData.dropoffAddress}
@@ -474,5 +630,18 @@ export function OrderFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Location creation dialogs */}
+    <LocationFormDialog
+      open={pickupLocationFormOpen}
+      onOpenChange={setPickupLocationFormOpen}
+      onSave={handleSavePickupLocation}
+    />
+    <LocationFormDialog
+      open={dropoffLocationFormOpen}
+      onOpenChange={setDropoffLocationFormOpen}
+      onSave={handleSaveDropoffLocation}
+    />
+    </>
   );
 }

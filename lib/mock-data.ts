@@ -342,6 +342,7 @@ export const mockLogs: Log[] = [
 export const mockLocations: Location[] = [
   {
     id: 1,
+    name: 'دفتر مرکزی',
     title: 'دفتر مرکزی',
     address: 'تهران، خیابان ولیعصر، پلاک 123',
     lat: DEFAULT_DRIVER_LAT + 0.005,
@@ -352,6 +353,7 @@ export const mockLocations: Location[] = [
   },
   {
     id: 2,
+    name: 'منزل',
     title: 'منزل',
     address: 'تهران، خیابان شریعتی، کوچه گل، پلاک 45',
     lat: DEFAULT_DRIVER_LAT - 0.003,
@@ -362,6 +364,7 @@ export const mockLocations: Location[] = [
   },
   {
     id: 3,
+    name: 'اداره',
     title: 'اداره',
     address: 'تهران، خیابان انقلاب، نبش خیابان حافظ',
     lat: DEFAULT_DRIVER_LAT - 0.007,
@@ -372,6 +375,7 @@ export const mockLocations: Location[] = [
   },
   {
     id: 4,
+    name: 'فروشگاه',
     title: 'فروشگاه',
     address: 'تهران، سعادت آباد، میدان کاج',
     lat: DEFAULT_DRIVER_LAT + 0.015,
@@ -382,6 +386,7 @@ export const mockLocations: Location[] = [
   },
   {
     id: 5,
+    name: 'انبار شمال',
     title: 'انبار شمال',
     address: 'تهران، شمیرانات، خیابان شریعتی شمالی، کوچه انبار',
     lat: DEFAULT_DRIVER_LAT + 0.025,

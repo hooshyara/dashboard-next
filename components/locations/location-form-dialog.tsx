@@ -72,6 +72,7 @@ export function LocationFormDialog({
 
     const locationData = {
       name: formData.name,
+      title: formData.name, // Alias for UI components
       address: formData.address,
       lat: formData.lat,
       lng: formData.lng,

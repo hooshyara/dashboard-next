@@ -63,7 +63,7 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="text-right text-foreground">کد پیگیری</TableHead>
+            <TableHead className="text-right text-foreground">نام مقصد</TableHead>
             <TableHead className="text-right text-foreground">آدرس</TableHead>
             <TableHead className="text-right text-foreground">شخص تماس</TableHead>
             <TableHead className="text-right text-foreground">موبایل</TableHead>
@@ -79,13 +79,8 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
             const displayedDriver = getDisplayedOrderDriver(order);
             return (
               <TableRow key={order.id} className="hover:bg-muted/30">
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className="font-mono text-xs border-primary/30 text-primary bg-primary/10"
-                  >
-                    {order.trackingCode}
-                  </Badge>
+                <TableCell className="text-foreground font-medium">
+                  {order.locationName || '-'}
                 </TableCell>
                 <TableCell className="text-foreground max-w-[180px] truncate">
                   {order.address}
