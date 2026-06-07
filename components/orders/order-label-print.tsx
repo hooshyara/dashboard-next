@@ -74,6 +74,15 @@ export function OrderLabelPrint({ order, meta, mode }: OrderLabelPrintProps) {
                 </span>
               </div>
             )}
+            {(order.sender || order.sender_mobile) && (
+              <div className="flex justify-between gap-4">
+                <span className="font-bold">فرستنده:</span>
+                <span>
+                  {order.sender || '-'}
+                  {order.sender_mobile ? ` (${order.sender_mobile})` : ''}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between gap-4 border-t border-black pt-2">
               <span className="font-bold">قیمت سفارش:</span>
               <span>

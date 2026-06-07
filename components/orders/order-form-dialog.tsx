@@ -125,6 +125,8 @@ const emptyForm = {
   dropoffLng: null as number | null,
   assignType: 'AI' as AssignType,
   contactPerson: '',
+  sender: '',
+  sender_mobile: '',
   deliveryTime: null as Date | null,
   price: null as number | null,
   description: '',
@@ -173,6 +175,8 @@ export function OrderFormDialog({
         dropoffLng: order.lng ?? legacyDrop?.lng ?? null,
         assignType: order.assignType,
         contactPerson: order.contactPerson,
+        sender: order.sender || '',
+        sender_mobile: order.sender_mobile || '',
         deliveryTime: new Date(order.deliveryTime),
         description: order.description || '',
         status: order.status,
@@ -350,6 +354,8 @@ export function OrderFormDialog({
       address: effectiveAddress,
       assignType: formData.assignType,
       contactPerson: formData.contactPerson || meta.receiverName || meta.placerName,
+      sender: formData.sender || null,
+      sender_mobile: formData.sender_mobile || null,
       deliveryTime: formData.deliveryTime,
       price: formData.price || null,
       description: formData.description || null,
@@ -649,20 +655,37 @@ export function OrderFormDialog({
                     />
                   </div>
                 </div>
-                <div className='grid gap-2'>
-                  <Label
-                    htmlFor='sender'
-                    className='text-foreground'
-                  >
-                    فرستنده
-                  </Label>
-                  <Input
-                    id='sender'
-                    value={meta.sender}
-                    onChange={(e) => setMeta({ ...meta, sender: e.target.value })}
-                    placeholder='نام فرستنده (اختیاری)'
-                    className='bg-secondary border-border text-foreground'
-                  />
+                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                  <div className='grid gap-2'>
+                    <Label
+                      htmlFor='sender'
+                      className='text-foreground'
+                    >
+                      فرستنده
+                    </Label>
+                    <Input
+                      id='sender'
+                      value={formData.sender}
+                      onChange={(e) => setFormData({ ...formData, sender: e.target.value })}
+                      placeholder='نام فرستنده (اختیاری)'
+                      className='bg-secondary border-border text-foreground'
+                    />
+                  </div>
+                  <div className='grid gap-2'>
+                    <Label
+                      htmlFor='sender_mobile'
+                      className='text-foreground'
+                    >
+                      موبایل فرستنده
+                    </Label>
+                    <Input
+                      id='sender_mobile'
+                      value={formData.sender_mobile}
+                      onChange={(e) => setFormData({ ...formData, sender_mobile: e.target.value })}
+                      placeholder='موبایل فرستنده (اختیاری)'
+                      className='bg-secondary border-border text-foreground'
+                    />
+                  </div>
                 </div>
               </div>
 

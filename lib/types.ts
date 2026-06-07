@@ -131,6 +131,8 @@ export interface Order {
   address: string;
   assignType: AssignType;
   contactPerson: string;
+  sender?: string | null;
+  sender_mobile?: string | null;
   deliveryTime: Date;
   description: string | null;
   status: OrderStatus;

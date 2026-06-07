@@ -136,6 +136,8 @@ export default function OrdersPage() {
         address: '',
         assignType: 'AI' as const,
         contactPerson: parsedOrder.contactPerson,
+        sender: null,
+        sender_mobile: null,
         deliveryTime: parsedOrder.deliveryTime,
         price: parsedOrder.price,
         description: parsedOrder.description,

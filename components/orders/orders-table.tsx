@@ -118,7 +118,7 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
                   {order.address}
                 </TableCell>
                 <TableCell className="text-foreground">
-                  {meta?.sender || "-"}
+                  {order.sender || "-"}
                 </TableCell>
                 <TableCell className="text-foreground">
                   {order.contactPerson}
