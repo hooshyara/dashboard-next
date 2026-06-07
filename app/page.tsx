@@ -9,8 +9,11 @@ import {
   getActiveDrivers,
 } from '@/lib/services';
 import { Driver, Order, OrderStatus, getDisplayedOrderDriver, ORDER_STATUS_LABEL_FA } from '@/lib/types';
+import { useAuth } from '@/components/auth/auth-provider';
+import { AdminDashboard } from '@/components/dashboard/admin-dashboard';
 
 export default function DashboardPage() {
+  const { isAdmin } = useAuth();
   const [activeDrivers, setActiveDrivers] = useState<Driver[]>([]);
   const [todayOrders, setTodayOrders] = useState<Order[]>([]);
   const [toYearOrders, setToYearOrders] = useState<Order[]>([]);
@@ -127,7 +130,10 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout title="داشبورد">
-      <div className="space-y-4">
+      {isAdmin ? (
+        <AdminDashboard />
+      ) : (
+        <div className="space-y-4">
         {/* Stats Grid */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
@@ -243,6 +249,7 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -51,6 +51,7 @@ export default function OrdersPage() {
   const [filters, setFilters] = useState<OrdersFilterValues | null>(null);
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
   const [printMeta, setPrintMeta] = useState<OrderMeta | null>(null);
+  const [printMode, setPrintMode] = useState<'label' | 'receipt'>('label');
 
   useEffect(() => {
     loadData();
@@ -81,8 +82,9 @@ export default function OrdersPage() {
   }
 
   function handlePrintLabel(order: Order) {
-    setPrintOrder(order);
+    setPrintOrder(order as Order);
     setPrintMeta(getOrderMeta(order.id));
+    setPrintMode('label');
     // اجازه می‌دهیم نمای چاپ رندر شود، سپس پنجرهٔ چاپ باز می‌شود
     setTimeout(() => {
       window.print();
@@ -280,6 +282,8 @@ export default function OrdersPage() {
         locations={locations}
         onUpload={handleBulkUpload}
       />
+
+      <OrderLabelPrint order={printOrder} meta={printMeta} mode={printMode} />
     </DashboardLayout>
   );
 }
