@@ -16,14 +16,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Printer } from "lucide-react";
 import { format } from "date-fns-jalali";
 import DateCell from "../ui/date-cell";
+import { PermissionGate } from "@/components/auth/permission-gate";
 
 interface OrdersTableProps {
   orders: Order[];
   onEdit: (order: Order) => void;
   onDelete: (order: Order) => void;
+  onPrintLabel?: (order: Order) => void;
 }
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -33,7 +35,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     "bg-destructive/20 text-destructive border-destructive/30",
 };
 
-export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
+export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTableProps) {
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -60,7 +62,6 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
     );
   }
   
-  console.log('orders: ', orders);
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <Table>
@@ -140,22 +141,37 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(order)}
-                      className="h-8 w-8  hover:text-foreground"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete(order)}
-                      className="h-8 w-8  hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {onPrintLabel && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onPrintLabel(order)}
+                        className="h-8 w-8 hover:text-primary"
+                        title="پرینت برچسب"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <PermissionGate permission="order:update">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(order)}
+                        className="h-8 w-8  hover:text-foreground"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </PermissionGate>
+                    <PermissionGate permission="order:delete">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(order)}
+                        className="h-8 w-8  hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </TableCell>
               </TableRow>

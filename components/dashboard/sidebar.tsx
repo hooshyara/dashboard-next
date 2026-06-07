@@ -15,17 +15,27 @@ import {
   History,
   MapPin,
   Boxes,
+  Undo2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/auth-provider';
+import { usePermissions } from '@/components/auth/permission-provider';
+import type { Permission } from '@/lib/types';
 
-const navItems = [
+const navItems: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  adminOnly: boolean;
+  permission?: Permission;
+}[] = [
   { href: '/', label: 'داشبورد', icon: LayoutDashboard, adminOnly: false },
-  { href: '/orders', label: 'سفارشات', icon: Package, adminOnly: false },
-  { href: '/delivery', label: 'لیست ارسال', icon: Truck, adminOnly: false },
-  { href: '/drivers', label: 'رانندگان', icon: Users, adminOnly: false },
-  { href: '/locations', label: 'نشانی ها', icon: MapPin, adminOnly: false },
+  { href: '/orders', label: 'سفارشات', icon: Package, adminOnly: false, permission: 'order:read' },
+  { href: '/delivery', label: 'لیست ارسال', icon: Truck, adminOnly: false, permission: 'order:read' },
+  { href: '/receive', label: 'لیست دریافت', icon: Undo2, adminOnly: false, permission: 'order:read' },
+  { href: '/drivers', label: 'رانندگان', icon: Users, adminOnly: false, permission: 'driver:read' },
+  { href: '/locations', label: 'نشانی ها', icon: MapPin, adminOnly: false, permission: 'place:read' },
   { href: '/reports', label: 'گزارشات', icon: FileText, adminOnly: true },
   { href: '/logs', label: 'فعالیت ها', icon: History, adminOnly: true },
   { href: '/users', label: 'کاربران', icon: UserCog, adminOnly: true },
@@ -34,11 +44,18 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
+  const { has } = usePermissions();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const visibleNavItems = useMemo(
-    () => navItems.filter((item) => !item.adminOnly || isAdmin),
-    [isAdmin]
+    () =>
+      navItems.filter((item) => {
+        if (item.adminOnly && !isAdmin) return false;
+        // مدیر کل همه را می‌بیند؛ سایر کاربران بر اساس دسترسی
+        if (item.permission && !has(item.permission)) return false;
+        return true;
+      }),
+    [isAdmin, has]
   );
 
   return (
