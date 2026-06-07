@@ -16,10 +16,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2, Printer } from "lucide-react";
+import { Pencil, Trash2, Printer, Tag } from "lucide-react";
 import { format } from "date-fns-jalali";
 import DateCell from "../ui/date-cell";
 import { PermissionGate } from "@/components/auth/permission-gate";
+import { getOrderMeta } from "@/lib/order-metadata";
+import { useMemo } from "react";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -36,6 +38,15 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
 };
 
 export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTableProps) {
+  // متادیتای محلی هر سفارش (فرستنده، سفارش متفرقه و ...) از localStorage خوانده می‌شود
+  const metaMap = useMemo(() => {
+    const map: Record<string, ReturnType<typeof getOrderMeta>> = {};
+    for (const o of orders) {
+      map[String(o.id)] = getOrderMeta(o.id);
+    }
+    return map;
+  }, [orders]);
+
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -72,11 +83,16 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
               نام مقصد
             </TableHead>
             <TableHead className="text-right text-foreground">آدرس</TableHead>
+            <TableHead className="text-right text-foreground">فرستنده</TableHead>
             <TableHead className="text-right text-foreground">گیرنده</TableHead>
             <TableHead className="text-right text-foreground">موبایل</TableHead>
             <TableHead className="text-right text-foreground">
               زمان تحویل
             </TableHead>
+            <TableHead className="text-right text-foreground">
+              زمان بازگشت
+            </TableHead>
+            <TableHead className="text-right text-foreground">نوع سفارش</TableHead>
             <TableHead className="text-right text-foreground">
               نوع تخصیص
             </TableHead>
@@ -89,6 +105,7 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
         <TableBody>
           {orders.map((order, index) => {
             const displayedDriver = getDisplayedOrderDriver(order);
+            const meta = metaMap[String(order.id)];
             return (
               <TableRow key={order.id} className="hover:bg-muted/30">
                 <TableCell className="text-foreground font-medium">
@@ -101,6 +118,9 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
                   {order.address}
                 </TableCell>
                 <TableCell className="text-foreground">
+                  {meta?.sender || "-"}
+                </TableCell>
+                <TableCell className="text-foreground">
                   {order.contactPerson}
                 </TableCell>
                 <TableCell className=" text-sm font-mono">
@@ -108,6 +128,19 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
                 </TableCell>
                 <TableCell className=" text-sm">
                   <DateCell date={order?.deliveryTime} />
+                </TableCell>
+                <TableCell className=" text-sm">
+                  {order.returnTime ? <DateCell date={order.returnTime} /> : "-"}
+                </TableCell>
+                <TableCell>
+                  {meta?.isMiscellaneous ? (
+                    <Badge className="bg-warning/20 text-warning border-warning/30 gap-1">
+                      <Tag className="h-3 w-3" />
+                      متفرقه
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">عادی</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge

@@ -649,6 +649,21 @@ export function OrderFormDialog({
                     />
                   </div>
                 </div>
+                <div className='grid gap-2'>
+                  <Label
+                    htmlFor='sender'
+                    className='text-foreground'
+                  >
+                    فرستنده
+                  </Label>
+                  <Input
+                    id='sender'
+                    value={meta.sender}
+                    onChange={(e) => setMeta({ ...meta, sender: e.target.value })}
+                    placeholder='نام فرستنده (اختیاری)'
+                    className='bg-secondary border-border text-foreground'
+                  />
+                </div>
               </div>
 
               {/* اطلاعات پرداخت */}

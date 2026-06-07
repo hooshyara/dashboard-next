@@ -17,6 +17,8 @@ export interface OrderMeta {
   receiverName: string;
   /** موبایل گیرنده (اختیاری) */
   receiverMobile: string;
+  /** نام فرستنده (اختیاری) */
+  sender: string;
   /** سفارش متفرقه؟ */
   isMiscellaneous: boolean;
   /** آدرس اختصاصی سفارش متفرقه */
@@ -30,6 +32,7 @@ export const EMPTY_ORDER_META: OrderMeta = {
   placerMobile: '',
   receiverName: '',
   receiverMobile: '',
+  sender: '',
   isMiscellaneous: false,
   miscAddress: '',
 };

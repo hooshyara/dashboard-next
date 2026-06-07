@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from 'recharts';
-import { Package, TrendingUp, ShoppingBag, Banknote } from 'lucide-react';
-import { fetchOrdersByTimeRange } from '@/lib/services';
-import { Order } from '@/lib/types';
+import { Package, ShoppingBag, Banknote, Users } from 'lucide-react';
+import { fetchOrdersByTimeRange, getActiveDrivers } from '@/lib/services';
+import { Driver, Order } from '@/lib/types';
 import {
   aggregateRangeStats,
   buildRanges,
@@ -20,16 +20,13 @@ const countConfig = {
   count: { label: 'تعداد سفارش', color: 'var(--chart-1)' },
 };
 
-const revenueConfig = {
-  revenue: { label: 'درآمد (تومان)', color: 'var(--chart-2)' },
-};
-
 const productConfig = {
   count: { label: 'تعداد فروش', color: 'var(--chart-3)' },
 };
 
 export function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [activeDrivers, setActiveDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,11 +42,20 @@ export function AdminDashboard() {
         const start = new Date(yearStart);
         start.setMonth(start.getMonth() - 1);
 
-        const list = await fetchOrdersByTimeRange(start, end);
-        if (!cancelled) setOrders(list);
+        const [list, drivers] = await Promise.all([
+          fetchOrdersByTimeRange(start, end),
+          getActiveDrivers(),
+        ]);
+        if (!cancelled) {
+          setOrders(list);
+          setActiveDrivers(drivers);
+        }
       } catch (err) {
         console.error(err);
-        if (!cancelled) setOrders([]);
+        if (!cancelled) {
+          setOrders([]);
+          setActiveDrivers([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -64,10 +70,6 @@ export function AdminDashboard() {
   const rangeStats: RangeStat[] = useMemo(() => aggregateRangeStats(orders, ranges), [orders, ranges]);
   const products: ProductStat[] = useMemo(() => topProducts(orders, 5), [orders]);
 
-  const totalRevenue = useMemo(
-    () => rangeStats.find((r) => r.key === 'year')?.revenue ?? 0,
-    [rangeStats]
-  );
   const totalOrders = useMemo(
     () => rangeStats.find((r) => r.key === 'year')?.count ?? 0,
     [rangeStats]
@@ -76,10 +78,10 @@ export function AdminDashboard() {
   const monthRevenue = rangeStats.find((r) => r.key === 'month')?.revenue ?? 0;
 
   const summaryCards = [
-    { title: 'سفارش امروز', value: loading ? '...' : todayCount.toString(), icon: Package, color: 'text-primary' },
-    { title: 'سفارش امسال', value: loading ? '...' : totalOrders.toString(), icon: ShoppingBag, color: 'text-chart-2' },
-    { title: 'درآمد این ماه', value: loading ? '...' : formatToman(monthRevenue), icon: Banknote, color: 'text-chart-3' },
-    { title: 'درآمد امسال', value: loading ? '...' : formatToman(totalRevenue), icon: TrendingUp, color: 'text-success' },
+    { title: 'رانندگان فعال', value: loading ? '...' : activeDrivers.length.toString(), icon: Users, color: 'text-primary' },
+    { title: 'سفارش امروز', value: loading ? '...' : todayCount.toString(), icon: Package, color: 'text-chart-2' },
+    { title: 'سفارش امسال', value: loading ? '...' : totalOrders.toString(), icon: ShoppingBag, color: 'text-chart-3' },
+    { title: 'درآمد این ماه', value: loading ? '...' : formatToman(monthRevenue), icon: Banknote, color: 'text-success' },
   ];
 
   return (
@@ -122,31 +124,39 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* نمودار درآمد بر اساس بازه */}
+        {/* رانندگان فعال */}
         <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground">درآمد بر اساس بازهٔ زمانی</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-foreground">رانندگان فعال</CardTitle>
+            <span className="text-sm font-medium text-primary">
+              {loading ? '...' : `${activeDrivers.length} راننده`}
+            </span>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="h-[280px] flex items-center justify-center text-muted-foreground">در حال بارگذاری...</div>
+            ) : activeDrivers.length === 0 ? (
+              <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                رانندهٔ فعالی ثبت نشده است.
+              </div>
             ) : (
-              <ChartContainer config={revenueConfig} className="h-[280px] w-full">
-                <BarChart data={rangeStats} accessibilityLayer>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={48}
-                    tickFormatter={(v) => new Intl.NumberFormat('fa-IR', { notation: 'compact' }).format(v)}
-                  />
-                  <ChartTooltip
-                    content={<ChartTooltipContent formatter={(value) => formatToman(Number(value))} />}
-                  />
-                  <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
+              <div className="h-[280px] overflow-y-auto space-y-3 pe-1">
+                {activeDrivers.map((driver) => (
+                  <div
+                    key={driver.id}
+                    className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium text-foreground">{driver.name}</span>
+                      <span className="text-sm text-muted-foreground">{driver.car || '—'}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-sm text-foreground">ظرفیت: {driver.capacity}</span>
+                      <span className="text-xs text-success">آنلاین</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
