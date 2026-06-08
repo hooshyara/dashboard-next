@@ -78,7 +78,11 @@ export default function ReceivePage() {
         isNeshanOptimizer,
         'RETURN',
       );
-      setRoutes(routeData);
+      // On the Pickup/Return page, do not auto-assign orders to drivers.
+      // Keep the drivers/routes but start them empty, and place every order
+      // into the unassigned orders table for manual assignment.
+      const emptyRoutes = routeData.map((route) => ({ ...route, orders: [] }));
+      setRoutes(emptyRoutes);
       setOrdersInRange(sorted);
     } catch (e) {
       console.error(e);
@@ -208,7 +212,7 @@ export default function ReceivePage() {
               <div>
                 <p className='text-sm '>مرسولات در مسیرها</p>
                 <p className='text-2xl font-bold text-foreground'>{totalOrders}</p>
-                <p className='text-xs  mt-1'>در بازهٔ انتخ��ب‌شده (API): {ordersInRange.length}</p>
+                <p className='text-xs  mt-1'>در ��ازهٔ انتخ��ب‌شده (API): {ordersInRange.length}</p>
               </div>
               <div className='p-3 rounded-full bg-chart-2/20'>
                 <List className='h-5 w-5 text-chart-2' />
