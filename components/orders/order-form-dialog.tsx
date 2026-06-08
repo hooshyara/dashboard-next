@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { PersianDatePicker } from '@/components/ui/persian-calendar';
 import { LocationSelect } from '@/components/orders/location-select';
 import { EmbeddedMapPicker } from '@/components/orders/embedded-map-picker';
@@ -14,6 +15,15 @@ import { LocationFormDialog } from '@/components/locations/location-form-dialog'
 import { Map, Plus } from 'lucide-react';
 import { Order, Driver, OrderStatus, AssignType, Location, ORDER_STATUS_LABEL_FA } from '@/lib/types';
 import { createLocation } from '@/lib/services';
+import {
+  EMPTY_ORDER_META,
+  OrderMeta,
+  PAYMENT_METHODS,
+  getLastDeliveryTime,
+  getOrderMeta,
+  saveLastDeliveryTime,
+  saveOrderMeta,
+} from '@/lib/order-metadata';
 import Cookies from 'js-cookie';
 
 // localStorage keys for last used locations
@@ -81,7 +91,9 @@ interface OrderFormDialogProps {
   order?: Order | null;
   drivers: Driver[];
   locations: Location[];
-  onSave: (order: Omit<Order, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt'> | Order) => void | Promise<void>;
+  onSave: (
+    order: Omit<Order, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt'> | Order,
+  ) => void | Promise<void> | Promise<Order | void>;
   onLocationCreated?: (location: Location) => void;
 }
 
@@ -113,6 +125,8 @@ const emptyForm = {
   dropoffLng: null as number | null,
   assignType: 'AI' as AssignType,
   contactPerson: '',
+  sender: '',
+  sender_mobile: '',
   deliveryTime: null as Date | null,
   price: null as number | null,
   description: '',
@@ -133,6 +147,8 @@ export function OrderFormDialog({
   onLocationCreated,
 }: OrderFormDialogProps) {
   const [formData, setFormData] = useState(emptyForm);
+  const [meta, setMeta] = useState<OrderMeta>(EMPTY_ORDER_META);
+  const [showErrors, setShowErrors] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pickupLocationFormOpen, setPickupLocationFormOpen] = useState(false);
   const [dropoffLocationFormOpen, setDropoffLocationFormOpen] = useState(false);
@@ -159,6 +175,8 @@ export function OrderFormDialog({
         dropoffLng: order.lng ?? legacyDrop?.lng ?? null,
         assignType: order.assignType,
         contactPerson: order.contactPerson,
+        sender: order.sender || '',
+        sender_mobile: order.sender_mobile || '',
         deliveryTime: new Date(order.deliveryTime),
         description: order.description || '',
         status: order.status,
@@ -168,12 +186,30 @@ export function OrderFormDialog({
         driverId: order.driverId || null,
         price: order.price || null,
       });
+
+      // بارگذاری متادیتای محلی سفارش (فیلدهایی که در API نیستند)
+      const savedMeta = getOrderMeta(order.id);
+      if (savedMeta) {
+        setMeta(savedMeta);
+      } else {
+        // مهاجرت ملایم: گیرنده از contactPerson و موبایل از سفارش
+        setMeta({
+          ...EMPTY_ORDER_META,
+          receiverName: order.contactPerson || '',
+          receiverMobile: order.mobile || '',
+          miscAddress: order.address || '',
+        });
+      }
+      setShowErrors(false);
     } else {
       // For new orders, load last used locations from localStorage
       const lastOrigin = getLastUsedOrigin();
       const lastDestination = getLastUsedDestination();
 
-      let newForm = { ...emptyForm };
+      // پیش‌فرض زمان تحویل: آخرین سفارش، در غیر این صورت زمان فعلی سیستم
+      const defaultDeliveryTime = getLastDeliveryTime() ?? new Date();
+
+      let newForm = { ...emptyForm, deliveryTime: defaultDeliveryTime };
 
       if (lastOrigin) {
         const originLoc = locations.find((l) => l.id === lastOrigin.id);
@@ -204,6 +240,8 @@ export function OrderFormDialog({
       }
 
       setFormData(newForm);
+      setMeta(EMPTY_ORDER_META);
+      setShowErrors(false);
     }
   }, [order, open, locations]);
 
@@ -285,10 +323,21 @@ export function OrderFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowErrors(true);
+
     if (!formData.deliveryTime || formData.pickupLocationId == null || formData.dropoffLocationId == null) {
       return;
     }
     if (formData.assignType === 'MANUAL' && !formData.driverId) return;
+
+    // قوانین کسب‌وکار: سفارش‌دهنده (نام و موبایل) الزامی است
+    if (!meta.placerName.trim() || !meta.placerMobile.trim()) {
+      return;
+    }
+    // در سفارش متفرقه، آدرس اختصاصی الزامی است
+    if (meta.isMiscellaneous && !meta.miscAddress.trim()) {
+      return;
+    }
 
     // Save selected locations to localStorage for next time
     const pickupLoc = locations.find((l) => l.id === formData.pickupLocationId);
@@ -298,15 +347,20 @@ export function OrderFormDialog({
 
     const selectedDriver = formData.driverId ? drivers.find((d) => d.id === formData.driverId) || null : null;
 
+    // در سفارش متفرقه از آدرس اختصاصی استفاده می‌شود، در غیر این صورت آدرس مقصد پیش‌فرض
+    const effectiveAddress = meta.isMiscellaneous && meta.miscAddress.trim() ? meta.miscAddress.trim() : formData.dropoffAddress;
+
     const orderData = {
-      address: formData.dropoffAddress,
+      address: effectiveAddress,
       assignType: formData.assignType,
-      contactPerson: formData.contactPerson,
+      contactPerson: formData.contactPerson || meta.receiverName || meta.placerName,
+      sender: formData.sender || null,
+      sender_mobile: formData.sender_mobile || null,
       deliveryTime: formData.deliveryTime,
       price: formData.price || null,
       description: formData.description || null,
       status: formData.status,
-      mobile: formData.mobile || null,
+      mobile: formData.mobile || meta.receiverMobile || meta.placerMobile || null,
       locationName: formData.dropoffLocationName || null,
       returnTime: formData.returnTime || null,
       productCode: formData.productCode || null,
@@ -320,17 +374,29 @@ export function OrderFormDialog({
 
     setIsSaving(true);
     try {
+      // زمان تحویل را برای پیش‌فرض سفارش بعدی ذخیره کن
+      saveLastDeliveryTime(formData.deliveryTime);
+
+      let savedId: number | string | undefined;
       if (order) {
-        await onSave({
+        const result = await onSave({
           ...orderData,
           id: order.id,
           trackingCode: order.id,
           createdAt: order.createdAt,
           updatedAt: new Date(),
         });
+        savedId = (result && typeof result === 'object' && 'id' in result ? result.id : order.id) as number;
       } else {
-        await onSave(orderData);
+        const result = await onSave(orderData);
+        savedId = result && typeof result === 'object' && 'id' in result ? (result.id as number) : undefined;
       }
+
+      // ذخیرهٔ فیلدهای تکمیلی به‌صورت محلی (خارج از قرارداد API)
+      if (savedId != null) {
+        saveOrderMeta(savedId, meta);
+      }
+
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving order:', error);
@@ -339,8 +405,16 @@ export function OrderFormDialog({
     }
   };
 
+  const placerValid = meta.placerName.trim().length > 0 && meta.placerMobile.trim().length > 0;
+  const miscValid = !meta.isMiscellaneous || meta.miscAddress.trim().length > 0;
+
   const canSubmit =
-    !!formData.deliveryTime && formData.pickupLocationId != null && formData.dropoffLocationId != null && !isSaving;
+    !!formData.deliveryTime &&
+    formData.pickupLocationId != null &&
+    formData.dropoffLocationId != null &&
+    placerValid &&
+    miscValid &&
+    !isSaving;
 
   return (
     <>
@@ -436,29 +510,10 @@ export function OrderFormDialog({
                   </div>
                 </div>
                 <div className='flex gap-2 justify-between'>
+                  
                   <div className='grid gap-2 w-full'>
                     <Label
-                      htmlFor='contactPerson'
-                      className='text-foreground'
-                    >
-                      گیرنده
-                    </Label>
-                    <Input
-                      id='contactPerson'
-                      value={formData.contactPerson}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          contactPerson: e.target.value,
-                        })
-                      }
-                      placeholder='نام شخص تحویل گیرنده'
-                      className='bg-secondary border-border text-foreground'
-                    />
-                  </div>
-                  <div className='grid gap-2 w-full'>
-                    <Label
-                      htmlFor='contactPerson'
+                      htmlFor='price'
                       className='text-foreground'
                     >
                       قیمت
@@ -480,6 +535,191 @@ export function OrderFormDialog({
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* اطلاعات سفارش‌دهنده و گیرنده */}
+              <div className='text-sm font-medium text-foreground border-b border-border pb-2'>
+                سفارش‌دهنده و گیرنده
+              </div>
+              <div className='grid gap-4'>
+                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                  <div className='grid gap-2'>
+                    <Label
+                      htmlFor='placerName'
+                      className='text-foreground'
+                    >
+                      نام سفارش‌دهنده *
+                    </Label>
+                    <Input
+                      id='placerName'
+                      value={meta.placerName}
+                      onChange={(e) => setMeta({ ...meta, placerName: e.target.value })}
+                      placeholder='نام و نام خانوادگی'
+                      className='bg-secondary border-border text-foreground'
+                    />
+                    {showErrors && !meta.placerName.trim() && (
+                      <p className='text-xs text-destructive'>نام سفارش‌دهنده الزامی است.</p>
+                    )}
+                  </div>
+                  <div className='grid gap-2'>
+                    <Label
+                      htmlFor='placerMobile'
+                      className='text-foreground'
+                    >
+                      موبایل سفارش‌دهنده *
+                    </Label>
+                    <Input
+                      id='placerMobile'
+                      dir='ltr'
+                      value={meta.placerMobile}
+                      onChange={(e) => setMeta({ ...meta, placerMobile: e.target.value })}
+                      placeholder='09123456789'
+                      className='bg-secondary border-border text-foreground'
+                    />
+                    {showErrors && !meta.placerMobile.trim() && (
+                      <p className='text-xs text-destructive'>موبایل سفارش‌دهنده الزامی است.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* <div className='flex items-center justify-between rounded-lg border border-border bg-secondary/50 p-3'>
+                  <div>
+                    <Label className='text-foreground'>گیرنده همان سفارش‌دهنده است</Label>
+                    <p className='text-xs text-muted-foreground mt-1'>برای کپی اطلاعات سفارش‌دهنده به گیرنده فعال کنید</p>
+                  </div>
+                  <Switch
+                    checked={
+                      meta.receiverName === meta.placerName &&
+                      meta.receiverMobile === meta.placerMobile &&
+                      meta.placerName.trim().length > 0
+                    }
+                    onCheckedChange={(checked) =>
+                      setMeta({
+                        ...meta,
+                        receiverName: checked ? meta.placerName : '',
+                        receiverMobile: checked ? meta.placerMobile : '',
+                      })
+                    }
+                  />
+                </div> */}
+
+                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                  
+                </div>
+                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                  <div className='grid gap-2'>
+                    <Label
+                      htmlFor='sender'
+                      className='text-foreground'
+                    >
+                      گیرنده
+                    </Label>
+                    <Input
+                      id='sender'
+                      value={formData.sender}
+                      onChange={(e) => setFormData({ ...formData, sender: e.target.value })}
+                      placeholder='نام گیرنده (اختیاری)'
+                      className='bg-secondary border-border text-foreground'
+                    />
+                  </div>
+                  <div className='grid gap-2'>
+                    <Label
+                      htmlFor='sender_mobile'
+                      className='text-foreground'
+                    >
+                      موبایل گیرنده
+                    </Label>
+                    <Input
+                      id='sender_mobile'
+                      value={formData.sender_mobile}
+                      onChange={(e) => setFormData({ ...formData, sender_mobile: e.target.value })}
+                      placeholder='موبایل فرستنده (اختیاری)'
+                      className='bg-secondary border-border text-foreground'
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* اطلاعات پرداخت */}
+              <div className='text-sm font-medium text-foreground border-b border-border pb-2'>اطلاعات پرداخت</div>
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                <div className='grid gap-2'>
+                  <Label className='text-foreground'>زمان پرداخت</Label>
+                  <PersianDatePicker
+                    value={meta.paymentTime ? new Date(meta.paymentTime) : undefined}
+                    onChange={(date) => setMeta({ ...meta, paymentTime: date ? date.toISOString() : null })}
+                    placeholder='انتخاب تاریخ و ساعت'
+                    showTimePicker
+                  />
+                </div>
+                <div className='grid gap-2'>
+                  <Label
+                    htmlFor='paymentMethod'
+                    className='text-foreground'
+                  >
+                    روش پرداخت
+                  </Label>
+                  <Select
+                    value={meta.paymentMethod || 'none'}
+                    onValueChange={(value) => setMeta({ ...meta, paymentMethod: value === 'none' ? '' : value })}
+                  >
+                    <SelectTrigger className='bg-secondary border-border text-foreground w-full'>
+                      <SelectValue placeholder='انتخاب روش پرداخت' />
+                    </SelectTrigger>
+                    <SelectContent className='bg-card border-border'>
+                      <SelectItem
+                        value='none'
+                        className='text-foreground'
+                      >
+                        نامشخص
+                      </SelectItem>
+                      {PAYMENT_METHODS.map((m) => (
+                        <SelectItem
+                          key={m.value}
+                          value={m.value}
+                          className='text-foreground'
+                        >
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* سفارش متفرقه */}
+              <div className='grid gap-4'>
+                <div className='flex items-center justify-between rounded-lg border border-border bg-secondary/50 p-3'>
+                  <div>
+                    <Label className='text-foreground'>سفارش متفرقه</Label>
+                    <p className='text-xs text-muted-foreground mt-1'>برای ثبت آدرس ارسال اختصاصی فعال کنید</p>
+                  </div>
+                  <Switch
+                    checked={meta.isMiscellaneous}
+                    onCheckedChange={(checked) => setMeta({ ...meta, isMiscellaneous: checked })}
+                  />
+                </div>
+                {meta.isMiscellaneous && (
+                  <div className='grid gap-2'>
+                    <Label
+                      htmlFor='miscAddress'
+                      className='text-foreground'
+                    >
+                      آدرس ارسال اختصاصی *
+                    </Label>
+                    <Textarea
+                      id='miscAddress'
+                      value={meta.miscAddress}
+                      onChange={(e) => setMeta({ ...meta, miscAddress: e.target.value })}
+                      placeholder='آدرس کامل ارسال این سفارش'
+                      className='bg-secondary border-border text-foreground'
+                      rows={2}
+                    />
+                    {showErrors && meta.isMiscellaneous && !meta.miscAddress.trim() && (
+                      <p className='text-xs text-destructive'>آدرس اختصاصی برای سفارش متفرقه الزامی است.</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className='grid grid-cols-1 gap-4 sm:grid-cols-3'>

@@ -31,8 +31,14 @@ import {
   hasOrderFilter,
 } from '@/lib/services';
 import { BulkUploadDialog, ParsedOrder } from '@/components/orders/bulk-upload-dialog';
+import { PermissionGate } from '@/components/auth/permission-gate';
+import { usePermissions } from '@/components/auth/permission-provider';
+import { guardedCall, PermissionDeniedError } from '@/lib/permissions';
+import { OrderLabelPrint } from '@/components/orders/order-label-print';
+import { getOrderMeta, OrderMeta } from '@/lib/order-metadata';
 
 export default function OrdersPage() {
+  const { has } = usePermissions();
   const [orders, setOrders] = useState<Partial<Order>[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -43,6 +49,9 @@ export default function OrdersPage() {
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [filters, setFilters] = useState<OrdersFilterValues | null>(null);
+  const [printOrder, setPrintOrder] = useState<Order | null>(null);
+  const [printMeta, setPrintMeta] = useState<OrderMeta | null>(null);
+  const [printMode, setPrintMode] = useState<'label' | 'receipt'>('label');
 
   useEffect(() => {
     loadData();
@@ -72,6 +81,16 @@ export default function OrdersPage() {
     setFormOpen(true);
   }
 
+  function handlePrintLabel(order: Order) {
+    setPrintOrder(order as Order);
+    setPrintMeta(getOrderMeta(order.id));
+    setPrintMode('label');
+    // اجازه می‌دهیم نمای چاپ رندر شود، سپس پنجرهٔ چاپ باز می‌شود
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  }
+
   function handleDeleteClick(order: Order) {
     setOrderToDelete(order);
     setDeleteDialogOpen(true);
@@ -79,22 +98,33 @@ export default function OrdersPage() {
 
   async function handleConfirmDelete() {
     if (orderToDelete) {
-      await deleteOrder(orderToDelete.id);
-      setOrders(orders.filter((o) => o.id !== orderToDelete.id));
-      setDeleteDialogOpen(false);
-      setOrderToDelete(null);
+      try {
+        await guardedCall('order:delete', () => deleteOrder(orderToDelete.id), has);
+        setOrders(orders.filter((o) => o.id !== orderToDelete.id));
+      } catch (e) {
+        if (e instanceof PermissionDeniedError) {
+          console.error('[v0]', e.message);
+        } else {
+          throw e;
+        }
+      } finally {
+        setDeleteDialogOpen(false);
+        setOrderToDelete(null);
+      }
     }
   }
 
   async function handleSaveOrder(orderData: Order) {
     if ('id' in orderData && 'trackingCode' in orderData) {
       // Update existing order
-      const updated = await updateOrder(orderData.id, orderData);
+      const updated = await guardedCall('order:update', () => updateOrder(orderData.id, orderData), has);
       setOrders(sortOrdersByNewest(orders.map((o) => (o.id === updated.id ? updated : o))));
+      return updated;
     } else {
       // Create new order - add at beginning (newest first)
-      const created = await createOrder(orderData);
+      const created = await guardedCall('order:create', () => createOrder(orderData), has);
       setOrders([created, ...orders]);
+      return created;
     }
     // await loadData();
   }
@@ -106,6 +136,8 @@ export default function OrdersPage() {
         address: '',
         assignType: 'AI' as const,
         contactPerson: parsedOrder.contactPerson,
+        sender: null,
+        sender_mobile: null,
         deliveryTime: parsedOrder.deliveryTime,
         price: parsedOrder.price,
         description: parsedOrder.description,
@@ -121,7 +153,7 @@ export default function OrdersPage() {
         driver: null,
         driverId: null,
       };
-      const created = await createOrder(orderData);
+      const created = await guardedCall('order:create', () => createOrder(orderData), has);
       results.push(created);
     }
     // Sort with newest first after bulk upload
@@ -185,12 +217,14 @@ export default function OrdersPage() {
               isDrawer
             />
 
-            <Button
-              onClick={handleAddOrder}
-              className='bg-primary text-primary-foreground'
-            >
-              <Plus className='h-4 w-4' />
-            </Button>
+            <PermissionGate permission='order:create'>
+              <Button
+                onClick={handleAddOrder}
+                className='bg-primary text-primary-foreground'
+              >
+                <Plus className='h-4 w-4' />
+              </Button>
+            </PermissionGate>
           </div>
         </CardHeader>
         <CardContent>
@@ -204,6 +238,7 @@ export default function OrdersPage() {
               orders={orders}
               onEdit={handleEditOrder}
               onDelete={handleDeleteClick}
+              onPrintLabel={handlePrintLabel}
             />
           )}
         </CardContent>
@@ -249,6 +284,8 @@ export default function OrdersPage() {
         locations={locations}
         onUpload={handleBulkUpload}
       />
+
+      <OrderLabelPrint order={printOrder} meta={printMeta} mode={printMode} />
     </DashboardLayout>
   );
 }

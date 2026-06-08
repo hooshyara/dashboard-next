@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 import { AuthProvider } from '@/components/auth/auth-provider';
+import { PermissionProvider } from '@/components/auth/permission-provider';
 import { ThemeProvider } from '@/components/theme-provider';
+import { PwaManager } from '@/components/pwa/pwa-manager';
 import './globals.css';
 import localFont from 'next/font/local';
 
@@ -60,7 +62,10 @@ export default function RootLayout({
           enableSystem={false}
           storageKey='theme'
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <PermissionProvider>{children}</PermissionProvider>
+          </AuthProvider>
+          <PwaManager />
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

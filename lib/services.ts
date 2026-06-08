@@ -106,6 +106,8 @@ function mapOrderPartialToApi(order: Partial<Order>): Record<string, unknown> {
   if (order.address !== undefined) p.address = order.address;
   if (order.assignType !== undefined) p.assignType = order.assignType;
   if (order.contactPerson !== undefined) p.contactPerson = order.contactPerson;
+  if (order.sender !== undefined) p.sender = order.sender;
+  if (order.sender_mobile !== undefined) p.sender_mobile = order.sender_mobile;
   if (order.deliveryTime !== undefined) p.deliveryTime = iso(order.deliveryTime);
   if (order.description !== undefined) p.description = order.description;
   if (order.status !== undefined) p.status = order.status;
@@ -311,6 +313,8 @@ export async function createOrder(
     dropoffPlace: order.dropoffPlaceId,
     assignType: order.assignType || 'AI',
     contactPerson: order.contactPerson,
+    sender: order.sender ?? null,
+    sender_mobile: order.sender_mobile ?? null,
     deliveryTime:
       order.deliveryTime instanceof Date
         ? order.deliveryTime.toISOString()

@@ -161,6 +161,8 @@ export function normalizeOrder(raw: unknown): Order {
     address,
     assignType: assignType as Order["assignType"],
     contactPerson: str(o.contactPerson, ""),
+    sender: o.sender != null ? str(o.sender) : null,
+    sender_mobile: o.sender_mobile != null ? str(o.sender_mobile) : null,
     deliveryTime: parseDate(o.deliveryTime),
     description: o.description != null ? str(o.description) : null,
     status,

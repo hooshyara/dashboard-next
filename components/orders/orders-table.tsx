@@ -16,14 +16,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Printer, Tag } from "lucide-react";
 import { format } from "date-fns-jalali";
 import DateCell from "../ui/date-cell";
+import { PermissionGate } from "@/components/auth/permission-gate";
+import { getOrderMeta } from "@/lib/order-metadata";
+import { useMemo } from "react";
 
 interface OrdersTableProps {
   orders: Order[];
   onEdit: (order: Order) => void;
   onDelete: (order: Order) => void;
+  onPrintLabel?: (order: Order) => void;
 }
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -33,7 +37,16 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     "bg-destructive/20 text-destructive border-destructive/30",
 };
 
-export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
+export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTableProps) {
+  // متادیتای محلی هر سفارش (فرستنده، سفارش متفرقه و ...) از localStorage خوانده می‌شود
+  const metaMap = useMemo(() => {
+    const map: Record<string, ReturnType<typeof getOrderMeta>> = {};
+    for (const o of orders) {
+      map[String(o.id)] = getOrderMeta(o.id);
+    }
+    return map;
+  }, [orders]);
+
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -60,7 +73,6 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
     );
   }
   
-  console.log('orders: ', orders);
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <Table>
@@ -71,11 +83,17 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
               نام مقصد
             </TableHead>
             <TableHead className="text-right text-foreground">آدرس</TableHead>
+            <TableHead className="text-right text-foreground">سفارش دهنده</TableHead>
+            <TableHead className="text-right text-foreground"> موبایل سفارش دهنده</TableHead>
             <TableHead className="text-right text-foreground">گیرنده</TableHead>
-            <TableHead className="text-right text-foreground">موبایل</TableHead>
+            <TableHead className="text-right text-foreground">موبایل گیرنده</TableHead>
             <TableHead className="text-right text-foreground">
               زمان تحویل
             </TableHead>
+            <TableHead className="text-right text-foreground">
+              زمان بازگشت
+            </TableHead>
+            <TableHead className="text-right text-foreground">نوع سفارش</TableHead>
             <TableHead className="text-right text-foreground">
               نوع تخصیص
             </TableHead>
@@ -88,6 +106,7 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
         <TableBody>
           {orders.map((order, index) => {
             const displayedDriver = getDisplayedOrderDriver(order);
+            const meta = metaMap[String(order.id)];
             return (
               <TableRow key={order.id} className="hover:bg-muted/30">
                 <TableCell className="text-foreground font-medium">
@@ -100,6 +119,12 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
                   {order.address}
                 </TableCell>
                 <TableCell className="text-foreground">
+                  {order.sender || "-"}
+                </TableCell>
+                <TableCell className=" text-sm font-mono">
+                  {order.sender_mobile || "-"}
+                </TableCell>
+                <TableCell className="text-foreground">
                   {order.contactPerson}
                 </TableCell>
                 <TableCell className=" text-sm font-mono">
@@ -107,6 +132,19 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
                 </TableCell>
                 <TableCell className=" text-sm">
                   <DateCell date={order?.deliveryTime} />
+                </TableCell>
+                <TableCell className=" text-sm">
+                  {order.returnTime ? <DateCell date={order.returnTime} /> : "-"}
+                </TableCell>
+                <TableCell>
+                  {meta?.isMiscellaneous ? (
+                    <Badge className="bg-warning/20 text-warning border-warning/30 gap-1">
+                      <Tag className="h-3 w-3" />
+                      متفرقه
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">عادی</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -140,22 +178,37 @@ export function OrdersTable({ orders, onEdit, onDelete }: OrdersTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(order)}
-                      className="h-8 w-8  hover:text-foreground"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete(order)}
-                      className="h-8 w-8  hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {onPrintLabel && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onPrintLabel(order)}
+                        className="h-8 w-8 hover:text-primary"
+                        title="پرینت برچسب"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <PermissionGate permission="order:update">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(order)}
+                        className="h-8 w-8  hover:text-foreground"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </PermissionGate>
+                    <PermissionGate permission="order:delete">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(order)}
+                        className="h-8 w-8  hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </TableCell>
               </TableRow>
