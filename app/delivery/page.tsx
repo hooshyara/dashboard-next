@@ -76,6 +76,7 @@ export default function DeliveryPage() {
           end: rangeEnd,
         },
         isNeshanOptimizer,
+        'GO',
       );
       setRoutes(routeData);
       setOrdersInRange(sorted);
