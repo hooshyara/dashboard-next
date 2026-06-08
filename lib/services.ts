@@ -538,6 +538,7 @@ function buildDeliveryRoutesFromOptimizerResponse(
 export async function getDeliveryRoutes(
   range: { start: Date; end: Date } = defaultOptimizerTimeRange(),
   isNeshanOptimizer?: boolean,
+  tripType?: 'GO' | 'RETURN',
 ): Promise<{ orders: Order[]; routes: DeliveryRoute[] }> {
   const res = await fetch(`${BASE_URL}${!isNeshanOptimizer ? '/optimizer/time' : '/optimizer/preview'}`, {
     method: 'POST',
@@ -546,6 +547,7 @@ export async function getDeliveryRoutes(
       start: range.start.toISOString(),
       end: range.end.toISOString(),
       ...(isNeshanOptimizer ? { lat: DEFAULT_DRIVER_LAT, lng: DEFAULT_DRIVER_LNG } : {}),
+      ...(tripType ? { tripType } : {}),
     }),
   });
   if (!res.ok) {

@@ -548,7 +548,7 @@ export function OrderFormDialog({
                       htmlFor='placerName'
                       className='text-foreground'
                     >
-                      نام سفارش‌دهنده *
+                      نام گیرنده *
                     </Label>
                     <Input
                       id='placerName'
@@ -566,7 +566,7 @@ export function OrderFormDialog({
                       htmlFor='placerMobile'
                       className='text-foreground'
                     >
-                      موبایل سفارش‌دهنده *
+                      موبایل گیرنده *
                     </Label>
                     <Input
                       id='placerMobile'
@@ -612,7 +612,7 @@ export function OrderFormDialog({
                       htmlFor='sender'
                       className='text-foreground'
                     >
-                      گیرنده
+                      سفارش‌دهنده
                     </Label>
                     <Input
                       id='sender'
@@ -627,7 +627,7 @@ export function OrderFormDialog({
                       htmlFor='sender_mobile'
                       className='text-foreground'
                     >
-                      موبایل گیرنده
+                      موبایل سفارش‌دهنده
                     </Label>
                     <Input
                       id='sender_mobile'

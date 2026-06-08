@@ -76,6 +76,7 @@ export default function ReceivePage() {
           end: rangeEnd,
         },
         isNeshanOptimizer,
+        'RETURN',
       );
       setRoutes(routeData);
       setOrdersInRange(sorted);
@@ -207,7 +208,7 @@ export default function ReceivePage() {
               <div>
                 <p className='text-sm '>مرسولات در مسیرها</p>
                 <p className='text-2xl font-bold text-foreground'>{totalOrders}</p>
-                <p className='text-xs  mt-1'>در بازهٔ انتخاب‌شده (API): {ordersInRange.length}</p>
+                <p className='text-xs  mt-1'>در بازهٔ انتخ��ب‌شده (API): {ordersInRange.length}</p>
               </div>
               <div className='p-3 rounded-full bg-chart-2/20'>
                 <List className='h-5 w-5 text-chart-2' />
