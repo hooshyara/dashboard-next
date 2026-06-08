@@ -7,14 +7,11 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from 'recharts';
 import { Package, ShoppingBag, Banknote, Users } from 'lucide-react';
 import { fetchOrdersByTimeRange, getActiveDrivers } from '@/lib/services';
 import { Driver, Order } from '@/lib/types';
-import { TimeFilter } from '@/components/orders/time-filter';
 import {
-  aggregateOrdersByDay,
   aggregateRangeStats,
   buildRanges,
   formatToman,
   RangeStat,
-  TimeBucketStat,
   topProducts,
   ProductStat,
 } from '@/lib/analytics';
@@ -31,28 +28,6 @@ export function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeDrivers, setActiveDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // داده‌های نمودار «تعداد فروش بر اساس بازهٔ زمانی» بر اساس بازهٔ انتخابی کاربر
-  const [timeRangeData, setTimeRangeData] = useState<TimeBucketStat[] | null>(null);
-  const [timeRangeLoading, setTimeRangeLoading] = useState(false);
-
-  // کاربر یک بازهٔ زمانی انتخاب می‌کند → orders/time فراخوانی می‌شود → نمودار به‌روزرسانی می‌شود
-  async function handleTimeRangeFilter(startDate: Date, endDate: Date) {
-    setTimeRangeLoading(true);
-    try {
-      const list = await fetchOrdersByTimeRange(startDate, endDate);
-      setTimeRangeData(aggregateOrdersByDay(list));
-    } catch (err) {
-      console.error(err);
-      setTimeRangeData([]);
-    } finally {
-      setTimeRangeLoading(false);
-    }
-  }
-
-  function handleTimeRangeClear() {
-    setTimeRangeData(null);
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -95,11 +70,6 @@ export function AdminDashboard() {
   const rangeStats: RangeStat[] = useMemo(() => aggregateRangeStats(orders, ranges), [orders, ranges]);
   const products: ProductStat[] = useMemo(() => topProducts(orders, 5), [orders]);
 
-  // وقتی کاربر بازه‌ای انتخاب کرده باشد از داده‌های API بازهٔ زمانی استفاده می‌کنیم،
-  // در غیر این صورت بازه‌های پیش‌فرض (امروز/هفته/ماه/...) نمایش داده می‌شوند.
-  const chartData: Array<{ label: string; count: number }> =
-    timeRangeData !== null ? timeRangeData : rangeStats;
-
   const totalOrders = useMemo(
     () => rangeStats.find((r) => r.key === 'year')?.count ?? 0,
     [rangeStats]
@@ -138,12 +108,11 @@ export function AdminDashboard() {
             <CardTitle className="text-foreground">تعداد فروش بر اساس بازهٔ زمانی</CardTitle>
           </CardHeader>
           <CardContent>
-            <TimeFilter onFilter={handleTimeRangeFilter} onClear={handleTimeRangeClear} />
-            {loading || timeRangeLoading ? (
+            {loading ? (
               <div className="h-[280px] flex items-center justify-center text-muted-foreground">در حال بارگذاری...</div>
             ) : (
               <ChartContainer config={countConfig} className="h-[280px] w-full">
-                <BarChart data={chartData} accessibilityLayer>
+                <BarChart data={rangeStats} accessibilityLayer>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
                   <YAxis tickLine={false} axisLine={false} width={32} allowDecimals={false} />

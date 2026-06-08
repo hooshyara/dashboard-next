@@ -77,36 +77,6 @@ export interface ProductStat {
   revenue: number;
 }
 
-export interface TimeBucketStat {
-  label: string;
-  count: number;
-  revenue: number;
-}
-
-/**
- * تجمیع تعداد سفارش بر اساس روز برای بازهٔ انتخاب‌شده.
- * برای نمودار «تعداد فروش بر اساس بازهٔ زمانی» استفاده می‌شود؛
- * ورودی، سفارش‌های بازگشتی از API بازهٔ زمانی است.
- */
-export function aggregateOrdersByDay(orders: Order[]): TimeBucketStat[] {
-  const map = new Map<string, TimeBucketStat>();
-  const dayFormatter = new Intl.DateTimeFormat('fa-IR', { month: 'short', day: 'numeric' });
-
-  for (const o of orders) {
-    const d = o.createdAt instanceof Date ? o.createdAt : new Date(o.createdAt);
-    if (Number.isNaN(d.getTime())) continue;
-    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    const existing = map.get(key) || { label: dayFormatter.format(d), count: 0, revenue: 0, _t: d.getTime() } as TimeBucketStat & { _t: number };
-    existing.count += 1;
-    if (isRevenueOrder(o)) existing.revenue += o.price || 0;
-    map.set(key, existing);
-  }
-
-  return Array.from(map.values())
-    .sort((a, b) => ((a as TimeBucketStat & { _t: number })._t ?? 0) - ((b as TimeBucketStat & { _t: number })._t ?? 0))
-    .map(({ label, count, revenue }) => ({ label, count, revenue }));
-}
-
 /** پنج محصول پرفروش بر اساس کد محصول */
 export function topProducts(orders: Order[], limit = 5): ProductStat[] {
   const map = new Map<string, ProductStat>();
