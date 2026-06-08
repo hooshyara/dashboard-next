@@ -62,10 +62,25 @@ export default function OrdersPage() {
     return [...ordersToSort].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
+  // Ensure the driver relation is preserved. The filter endpoint can return an
+  // order with a driverId but without a fully-populated nested driver object,
+  // which would make the driver name column appear empty. We re-attach the
+  // driver from the already-loaded drivers list so the relation is never lost.
+  function hydrateOrdersWithDrivers(list: Order[], driverList: Driver[]): Order[] {
+    if (!driverList.length) return list;
+    return list.map((order) => {
+      if (!order.driver && order.driverId) {
+        const matched = driverList.find((d) => d.id === order.driverId);
+        if (matched) return { ...order, driver: matched };
+      }
+      return order;
+    });
+  }
+
   async function loadData() {
     setLoading(true);
     const [ordersData, driversData, locationsData] = await Promise.all([getOrders(), getDrivers(), getLocations()]);
-    setOrders(sortOrdersByNewest(ordersData));
+    setOrders(sortOrdersByNewest(hydrateOrdersWithDrivers(ordersData, driversData)));
     setDrivers(driversData);
     setLocations(locationsData);
     setLoading(false);
@@ -166,7 +181,7 @@ export default function OrdersPage() {
     setLoading(true);
     try {
       const data = active ? await filterOrders(filterValues) : await getOrders();
-      setOrders(sortOrdersByNewest(data));
+      setOrders(sortOrdersByNewest(hydrateOrdersWithDrivers(data, drivers)));
     } catch (e) {
       console.error(e);
       setOrders([]);
@@ -180,7 +195,7 @@ export default function OrdersPage() {
     setLoading(true);
     try {
       const data = await getOrders();
-      setOrders(sortOrdersByNewest(data));
+      setOrders(sortOrdersByNewest(hydrateOrdersWithDrivers(data, drivers)));
     } finally {
       setLoading(false);
     }
