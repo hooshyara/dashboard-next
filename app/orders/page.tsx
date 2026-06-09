@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus } from 'lucide-react';
+import { Plus, Printer } from 'lucide-react';
 import { Order, Driver, Location } from '@/lib/types';
 import { TableSkeleton } from '@/components/ui/loading-skeletons';
 import {
@@ -35,6 +35,7 @@ import { PermissionGate } from '@/components/auth/permission-gate';
 import { usePermissions } from '@/components/auth/permission-provider';
 import { guardedCall, PermissionDeniedError } from '@/lib/permissions';
 import { OrderLabelPrint } from '@/components/orders/order-label-print';
+import { OrdersPrintView } from '@/components/orders/orders-print-view';
 import { getOrderMeta, OrderMeta } from '@/lib/order-metadata';
 
 export default function OrdersPage() {
@@ -52,6 +53,8 @@ export default function OrdersPage() {
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
   const [printMeta, setPrintMeta] = useState<OrderMeta | null>(null);
   const [printMode, setPrintMode] = useState<'label' | 'receipt'>('label');
+  // سفارش‌هایی که در نمای چاپ کامل رندر می‌شوند (یک سفارش برای چاپ تکی، همه برای چاپ کلی)
+  const [ordersToPrint, setOrdersToPrint] = useState<Order[]>([]);
 
   useEffect(() => {
     loadData();
@@ -82,6 +85,7 @@ export default function OrdersPage() {
   }
 
   function handlePrintLabel(order: Order) {
+    setOrdersToPrint([]);
     setPrintOrder(order as Order);
     setPrintMeta(getOrderMeta(order.id));
     setPrintMode('label');
@@ -94,6 +98,24 @@ export default function OrdersPage() {
   function handleDeleteClick(order: Order) {
     setOrderToDelete(order);
     setDeleteDialogOpen(true);
+  }
+
+  // چاپ کامل یک سفارش — فقط همان سفارش در نمای چاپ رندر می‌شود
+  function handlePrintOrder(order: Order) {
+    setPrintOrder(null);
+    setOrdersToPrint([order]);
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  }
+
+  // چاپ همهٔ سفارش‌های نمایش‌داده‌شده (با فیلترهای فعلی)
+  function handlePrintAllOrders() {
+    setPrintOrder(null);
+    setOrdersToPrint(orders as Order[]);
+    setTimeout(() => {
+      window.print();
+    }, 100);
   }
 
   async function handleConfirmDelete() {
@@ -217,6 +239,16 @@ export default function OrdersPage() {
               isDrawer
             />
 
+            <Button
+              variant='outline'
+              onClick={handlePrintAllOrders}
+              disabled={orders.length === 0}
+              className='border-border gap-2'
+            >
+              <Printer className='h-4 w-4' />
+              <span className='hidden sm:inline'>پرینت همه سفارش‌ها</span>
+            </Button>
+
             <PermissionGate permission='order:create'>
               <Button
                 onClick={handleAddOrder}
@@ -239,6 +271,7 @@ export default function OrdersPage() {
               onEdit={handleEditOrder}
               onDelete={handleDeleteClick}
               onPrintLabel={handlePrintLabel}
+              onPrintOrder={handlePrintOrder}
             />
           )}
         </CardContent>
@@ -286,6 +319,7 @@ export default function OrdersPage() {
       />
 
       <OrderLabelPrint order={printOrder} meta={printMeta} mode={printMode} />
+      <OrdersPrintView orders={ordersToPrint} />
     </DashboardLayout>
   );
 }

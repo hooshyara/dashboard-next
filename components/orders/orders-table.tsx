@@ -16,18 +16,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2, Printer, Tag } from "lucide-react";
+import { Pencil, Trash2, Printer, Tag, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { format } from "date-fns-jalali";
 import DateCell from "../ui/date-cell";
 import { PermissionGate } from "@/components/auth/permission-gate";
 import { getOrderMeta } from "@/lib/order-metadata";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface OrdersTableProps {
   orders: Order[];
   onEdit: (order: Order) => void;
   onDelete: (order: Order) => void;
   onPrintLabel?: (order: Order) => void;
+  onPrintOrder?: (order: Order) => void;
 }
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -37,7 +38,27 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     "bg-destructive/20 text-destructive border-destructive/30",
 };
 
-export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTableProps) {
+export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel, onPrintOrder }: OrdersTableProps) {
+  // جهت مرتب‌سازی بر اساس زمان تحویل: null = بدون مرتب‌سازی، desc = جدیدترین، asc = قدیمی‌ترین
+  const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
+
+  function handleSortByDate() {
+    // اولین کلیک → جدیدترین (DESC)، کلیک بعدی → قدیمی‌ترین (ASC)، سپس دوباره DESC
+    setSortDir((prev) => (prev === "desc" ? "asc" : "desc"));
+  }
+
+  // مرتب‌سازی روی سفارش‌های فعلی (فیلترشده) انجام می‌شود تا با فیلترها هماهنگ بماند
+  const sortedOrders = useMemo(() => {
+    if (!sortDir) return orders;
+    return [...orders].sort((a, b) => {
+      const aTime = new Date(a.deliveryTime).getTime();
+      const bTime = new Date(b.deliveryTime).getTime();
+      const safeA = Number.isNaN(aTime) ? 0 : aTime;
+      const safeB = Number.isNaN(bTime) ? 0 : bTime;
+      return sortDir === "asc" ? safeA - safeB : safeB - safeA;
+    });
+  }, [orders, sortDir]);
+
   // متادیتای محلی هر سفارش (فرستنده، سفارش متفرقه و ...) از localStorage خوانده می‌شود
   const metaMap = useMemo(() => {
     const map: Record<string, ReturnType<typeof getOrderMeta>> = {};
@@ -88,7 +109,21 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
             <TableHead className="text-right text-foreground">گیرنده</TableHead>
             <TableHead className="text-right text-foreground">موبایل گیرنده</TableHead>
             <TableHead className="text-right text-foreground">
-              زمان تحویل
+              <button
+                type="button"
+                onClick={handleSortByDate}
+                className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+                title="مرتب‌سازی بر اساس زمان تحویل"
+              >
+                زمان تحویل
+                {sortDir === "desc" ? (
+                  <ArrowDown className="h-3.5 w-3.5" />
+                ) : sortDir === "asc" ? (
+                  <ArrowUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+                )}
+              </button>
             </TableHead>
             <TableHead className="text-right text-foreground">
               زمان بازگشت
@@ -104,7 +139,7 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders.map((order, index) => {
+          {sortedOrders.map((order, index) => {
             const displayedDriver = getDisplayedOrderDriver(order);
             const meta = metaMap[String(order.id)];
             return (
@@ -178,6 +213,17 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
+                    {onPrintOrder && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onPrintOrder(order)}
+                        className="h-8 w-8 hover:text-primary"
+                        title="پرینت سفارش"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
+                    )}
                     {onPrintLabel && (
                       <Button
                         variant="ghost"
@@ -186,7 +232,7 @@ export function OrdersTable({ orders, onEdit, onDelete, onPrintLabel }: OrdersTa
                         className="h-8 w-8 hover:text-primary"
                         title="پرینت برچسب"
                       >
-                        <Printer className="h-4 w-4" />
+                        <Tag className="h-4 w-4" />
                       </Button>
                     )}
                     <PermissionGate permission="order:update">

@@ -164,4 +164,19 @@
   .print-container * {
     color: black !important;
   }
+  /* فقط محتوای کانتینر چاپ سفارش نمایش داده شود و بقیهٔ صفحه پنهان شود */
+  body:has(.order-print-container) * {
+    visibility: hidden !important;
+  }
+  body:has(.order-print-container) .order-print-container,
+  body:has(.order-print-container) .order-print-container * {
+    visibility: visible !important;
+  }
+  .order-print-container {
+    position: absolute !important;
+    top: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+  }
 }
