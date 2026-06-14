@@ -1,0 +1,26 @@
+services:
+  admin:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: golestan-webui
+    container_name: admin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`cp.tashrifat-golestan.ir`)"
+      - "traefik.http.routers.admin.entrypoints=websecure"
+      - "traefik.http.routers.admin.tls=true"
+      - "traefik.http.middlewares.gzip-admin.compress=true"
+      - "traefik.http.routers.admin.middlewares=gzip-admin@docker"
+      - "traefik.http.services.admin.loadbalancer.server.port=3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    networks:
+      - internal
+    restart: unless-stopped
+
+networks:
+  internal:
+    external: true
