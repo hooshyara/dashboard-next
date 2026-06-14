@@ -330,8 +330,8 @@ export function OrderFormDialog({
     }
     if (formData.assignType === 'MANUAL' && !formData.driverId) return;
 
-    // قوانین کسب‌وکار: سفارش‌دهنده (نام و موبایل) الزامی است
-    if (!meta.placerName.trim() || !meta.placerMobile.trim()) {
+    // قوانین کسب‌وکار: سفارش‌دهنده الزامی است (گیرنده اختیاری است)
+    if (!formData.sender.trim()) {
       return;
     }
     // در سفارش متفرقه، آدرس اختصاصی الزامی است
@@ -548,37 +548,31 @@ export function OrderFormDialog({
                       htmlFor='placerName'
                       className='text-foreground'
                     >
-                      نام گیرنده *
+                      نام گیرنده
                     </Label>
                     <Input
                       id='placerName'
                       value={meta.placerName}
                       onChange={(e) => setMeta({ ...meta, placerName: e.target.value })}
-                      placeholder='نام و نام خانوادگی'
+                      placeholder='نام و نام خانوادگی (اختیاری)'
                       className='bg-secondary border-border text-foreground'
                     />
-                    {showErrors && !meta.placerName.trim() && (
-                      <p className='text-xs text-destructive'>نام سفارش‌دهنده الزامی است.</p>
-                    )}
                   </div>
                   <div className='grid gap-2'>
                     <Label
                       htmlFor='placerMobile'
                       className='text-foreground'
                     >
-                      موبایل گیرنده *
+                      موبایل گیرنده
                     </Label>
                     <Input
                       id='placerMobile'
                       dir='ltr'
                       value={meta.placerMobile}
                       onChange={(e) => setMeta({ ...meta, placerMobile: e.target.value })}
-                      placeholder='09123456789'
+                      placeholder='09123456789 (اختیاری)'
                       className='bg-secondary border-border text-foreground'
                     />
-                    {showErrors && !meta.placerMobile.trim() && (
-                      <p className='text-xs text-destructive'>موبایل سفارش‌دهنده الزامی است.</p>
-                    )}
                   </div>
                 </div>
 
@@ -612,15 +606,18 @@ export function OrderFormDialog({
                       htmlFor='sender'
                       className='text-foreground'
                     >
-                      سفارش‌دهنده
+                      سفارش‌دهنده *
                     </Label>
                     <Input
                       id='sender'
                       value={formData.sender}
                       onChange={(e) => setFormData({ ...formData, sender: e.target.value })}
-                      placeholder='نام گیرنده (اختیاری)'
+                      placeholder='نام سفارش‌دهنده'
                       className='bg-secondary border-border text-foreground'
                     />
+                    {showErrors && !formData.sender.trim() && (
+                      <p className='text-xs text-destructive'>نام سفارش‌دهنده الزامی است.</p>
+                    )}
                   </div>
                   <div className='grid gap-2'>
                     <Label
