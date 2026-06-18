@@ -160,7 +160,7 @@ export function OrdersTable({
               </button> */}
             </TableHead>
             <TableHead className="text-right text-foreground">
-              کد محصول
+              کد گل
             </TableHead>
             <TableHead className="text-right text-foreground">قیمت</TableHead>
             <TableHead className="text-right text-foreground">

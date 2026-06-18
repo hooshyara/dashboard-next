@@ -12,7 +12,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Location, OrderStatus } from '@/lib/types';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BulkUploadDialogProps {
@@ -261,7 +261,7 @@ export function BulkUploadDialog({
         <DialogHeader>
           <DialogTitle className="text-foreground">آپلود سفارشات از اکسل</DialogTitle>
           <DialogDescription className="">
-            فایل اکسل با ستون‌های: مبدأ، مقصد، شخص تماس، زمان تحویل، موبایل، توضیحات، کد محصول، زمان بازگشت
+            فایل اکسل با ستون‌های: مبدأ، مقصد، شخص تماس، زمان تحویل، موبایل، توضیحات، کد گل، زمان بازگشت
           </DialogDescription>
         </DialogHeader>
 

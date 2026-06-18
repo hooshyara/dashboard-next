@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '../ui/drawer';
 import { PersianDatePicker } from '@/components/ui/persian-calendar';
-import { Filter, X } from 'lucide-react';
+import { ListFilter as Filter, X } from 'lucide-react';
 import { Driver } from '@/lib/types';
 
 export interface OrdersFilterValues {
@@ -25,6 +25,20 @@ interface OrdersFilterProps {
   onClear: () => void;
   isDrawer?: boolean;
   className?: string;
+}
+
+function toStartOfDay(date: Date | undefined | null): Date | null {
+  if (!date) return null;
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function toEndOfDay(date: Date | undefined | null): Date | null {
+  if (!date) return null;
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
 }
 
 export function OrdersFilter({ drivers, onFilter, onClear, isDrawer, className }: OrdersFilterProps) {
@@ -126,7 +140,7 @@ export function OrdersFilter({ drivers, onFilter, onClear, isDrawer, className }
             <Label className='text-foreground text-sm'>از تاریخ</Label>
             <PersianDatePicker
               value={filters.startDate || undefined}
-              onChange={(date) => setFilters({ ...filters, startDate: date || null })}
+              onChange={(date) => setFilters({ ...filters, startDate: toStartOfDay(date) })}
               placeholder='انتخاب تاریخ'
               showTimePicker
             />
@@ -137,7 +151,7 @@ export function OrdersFilter({ drivers, onFilter, onClear, isDrawer, className }
             <Label className='text-foreground text-sm'>تا تاریخ</Label>
             <PersianDatePicker
               value={filters.endDate || undefined}
-              onChange={(date) => setFilters({ ...filters, endDate: date || null })}
+              onChange={(date) => setFilters({ ...filters, endDate: toEndOfDay(date) })}
               placeholder='انتخاب تاریخ'
               showTimePicker
             />
