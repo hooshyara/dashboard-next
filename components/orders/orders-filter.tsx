@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PersianDatePicker } from '@/components/ui/persian-calendar';
-import { Filter, X } from 'lucide-react';
+import { ListFilter as Filter, X } from 'lucide-react';
 import { Driver } from '@/lib/types';
 
 export interface OrdersFilterValues {
@@ -28,6 +28,20 @@ interface OrdersFilterProps {
   drivers: Driver[];
   onFilter: (filters: OrdersFilterValues) => void;
   onClear: () => void;
+}
+
+function toStartOfDay(date: Date | undefined | null): Date | null {
+  if (!date) return null;
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function toEndOfDay(date: Date | undefined | null): Date | null {
+  if (!date) return null;
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
 }
 
 export function OrdersFilter({ drivers, onFilter, onClear }: OrdersFilterProps) {
@@ -135,7 +149,7 @@ export function OrdersFilter({ drivers, onFilter, onClear }: OrdersFilterProps) 
             </Label>
             <PersianDatePicker
               value={filters.startDate || undefined}
-              onChange={(date) => setFilters({ ...filters, startDate: date || null })}
+              onChange={(date) => setFilters({ ...filters, startDate: toStartOfDay(date) })}
               placeholder="انتخاب تاریخ"
               showTimePicker
             />
@@ -148,7 +162,7 @@ export function OrdersFilter({ drivers, onFilter, onClear }: OrdersFilterProps) 
             </Label>
             <PersianDatePicker
               value={filters.endDate || undefined}
-              onChange={(date) => setFilters({ ...filters, endDate: date || null })}
+              onChange={(date) => setFilters({ ...filters, endDate: toEndOfDay(date) })}
               placeholder="انتخاب تاریخ"
               showTimePicker
             />
