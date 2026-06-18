@@ -37,7 +37,31 @@ export function OrdersFilter({ drivers, onFilter, onClear, isDrawer, className }
   });
 
   const handleFilter = () => {
-    onFilter(filters);
+    // بازه تاریخ همیشه از ابتدای روز (۰۰:۰۰:۰۰) تا انتهای روز (۲۳:۵۹:۵۹) باشد
+    let { startDate, endDate } = filters;
+
+    if (startDate) {
+      startDate = new Date(startDate);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    if (endDate) {
+      endDate = new Date(endDate);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    // اگر فقط یکی از تاریخ‌ها انتخاب شده باشد، بازه همان روز در نظر گرفته شود
+    if (startDate && !endDate) {
+      endDate = new Date(startDate);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    if (endDate && !startDate) {
+      startDate = new Date(endDate);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    onFilter({ ...filters, startDate, endDate });
   };
 
   const handleClear = () => {

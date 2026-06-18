@@ -273,7 +273,7 @@ export function AdminDashboard() {
             </div>
           ) : products.length === 0 ? (
             <div className="h-[280px] sm:h-[300px] flex items-center justify-center text-muted-foreground">
-              داده‌ای برای نمایش وجود ندارد. (کد محصول ثبت نشده است)
+              داده‌ای برای نمایش وجود ندارد. (کد گل ثبت نشده است)
             </div>
           ) : (
             <>

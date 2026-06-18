@@ -908,7 +908,7 @@ export function OrderFormDialog({
                 </div> */}
                 <div className="grid gap-2">
                   <Label htmlFor="productCode" className="text-foreground">
-                    کد محصول
+                    کد گل
                   </Label>
                   <Input
                     id="productCode"
@@ -916,7 +916,7 @@ export function OrderFormDialog({
                     onChange={(e) =>
                       setFormData({ ...formData, productCode: e.target.value })
                     }
-                    placeholder="کد محصول"
+                    placeholder="کد گل"
                     className="bg-secondary border-border text-foreground"
                   />
                 </div>

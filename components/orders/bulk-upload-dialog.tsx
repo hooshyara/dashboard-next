@@ -261,7 +261,7 @@ export function BulkUploadDialog({
         <DialogHeader>
           <DialogTitle className="text-foreground">آپلود سفارشات از اکسل</DialogTitle>
           <DialogDescription className="">
-            فایل اکسل با ستون‌های: مبدأ، مقصد، شخص تماس، زمان تحویل، موبایل، توضیحات، کد محصول، زمان بازگشت
+            فایل اکسل با ستون‌های: مبدأ، مقصد، شخص تماس، زمان تحویل، موبایل، توضیحات، کد گل، زمان بازگشت
           </DialogDescription>
         </DialogHeader>
 
