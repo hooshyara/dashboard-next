@@ -1,12 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { OrdersTable } from '@/components/orders/orders-table';
-import { OrderFormDialog } from '@/components/orders/order-form-dialog';
-import OrdersFilterContainer, { OrdersFilterValues } from '@/components/orders/orders-filter';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
+import { OrdersTable } from "@/components/orders/orders-table";
+import { OrderFormDialog } from "@/components/orders/order-form-dialog";
+import OrdersFilterContainer, {
+  OrdersFilterValues,
+} from "@/components/orders/orders-filter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,10 +18,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Plus, Printer } from 'lucide-react';
-import { Order, Driver, Location } from '@/lib/types';
-import { TableSkeleton } from '@/components/ui/loading-skeletons';
+} from "@/components/ui/alert-dialog";
+import { Plus, Printer } from "lucide-react";
+import { Order, Driver, Location } from "@/lib/types";
+import { TableSkeleton } from "@/components/ui/loading-skeletons";
 import {
   getOrders,
   getDrivers,
@@ -29,14 +31,17 @@ import {
   deleteOrder,
   filterOrders,
   hasOrderFilter,
-} from '@/lib/services';
-import { BulkUploadDialog, ParsedOrder } from '@/components/orders/bulk-upload-dialog';
-import { PermissionGate } from '@/components/auth/permission-gate';
-import { usePermissions } from '@/components/auth/permission-provider';
-import { guardedCall, PermissionDeniedError } from '@/lib/permissions';
-import { OrderLabelPrint } from '@/components/orders/order-label-print';
-import { OrdersPrintView } from '@/components/orders/orders-print-view';
-import { getOrderMeta, OrderMeta } from '@/lib/order-metadata';
+} from "@/lib/services";
+import {
+  BulkUploadDialog,
+  ParsedOrder,
+} from "@/components/orders/bulk-upload-dialog";
+import { PermissionGate } from "@/components/auth/permission-gate";
+import { usePermissions } from "@/components/auth/permission-provider";
+import { guardedCall, PermissionDeniedError } from "@/lib/permissions";
+import { OrderLabelPrint } from "@/components/orders/order-label-print";
+import { OrdersPrintView } from "@/components/orders/orders-print-view";
+import { getOrderMeta, OrderMeta } from "@/lib/order-metadata";
 
 export default function OrdersPage() {
   const { has } = usePermissions();
@@ -52,7 +57,7 @@ export default function OrdersPage() {
   const [filters, setFilters] = useState<OrdersFilterValues | null>(null);
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
   const [printMeta, setPrintMeta] = useState<OrderMeta | null>(null);
-  const [printMode, setPrintMode] = useState<'label' | 'receipt'>('label');
+  const [printMode, setPrintMode] = useState<"label" | "receipt">("label");
   // سفارش‌هایی که در نمای چاپ کامل رندر می‌شوند (یک سفارش برای چاپ تکی، همه برای چاپ کلی)
   const [ordersToPrint, setOrdersToPrint] = useState<Order[]>([]);
 
@@ -62,12 +67,19 @@ export default function OrdersPage() {
 
   // Helper function to sort orders by newest first (descending createdAt)
   function sortOrdersByNewest(ordersToSort: Order[]): Order[] {
-    return [...ordersToSort].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return [...ordersToSort].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
   }
 
   async function loadData() {
     setLoading(true);
-    const [ordersData, driversData, locationsData] = await Promise.all([getOrders(), getDrivers(), getLocations()]);
+    const [ordersData, driversData, locationsData] = await Promise.all([
+      getOrders(),
+      getDrivers(),
+      getLocations(),
+    ]);
     setOrders(sortOrdersByNewest(ordersData));
     setDrivers(driversData);
     setLocations(locationsData);
@@ -88,7 +100,7 @@ export default function OrdersPage() {
     setOrdersToPrint([]);
     setPrintOrder(order as Order);
     setPrintMeta(getOrderMeta(order.id));
-    setPrintMode('label');
+    setPrintMode("label");
     // اجازه می‌دهیم نمای چاپ رندر شود، سپس پنجرهٔ چاپ باز می‌شود
     setTimeout(() => {
       window.print();
@@ -121,11 +133,15 @@ export default function OrdersPage() {
   async function handleConfirmDelete() {
     if (orderToDelete) {
       try {
-        await guardedCall('order:delete', () => deleteOrder(orderToDelete.id), has);
+        await guardedCall(
+          "order:delete",
+          () => deleteOrder(orderToDelete.id),
+          has,
+        );
         setOrders(orders.filter((o) => o.id !== orderToDelete.id));
       } catch (e) {
         if (e instanceof PermissionDeniedError) {
-          console.error('[v0]', e.message);
+          console.error("[v0]", e.message);
         } else {
           throw e;
         }
@@ -137,14 +153,26 @@ export default function OrdersPage() {
   }
 
   async function handleSaveOrder(orderData: Order) {
-    if ('id' in orderData && 'trackingCode' in orderData) {
+    if ("id" in orderData && "trackingCode" in orderData) {
       // Update existing order
-      const updated = await guardedCall('order:update', () => updateOrder(orderData.id, orderData), has);
-      setOrders(sortOrdersByNewest(orders.map((o) => (o.id === updated.id ? updated : o))));
+      const updated = await guardedCall(
+        "order:update",
+        () => updateOrder(orderData.id, orderData),
+        has,
+      );
+      setOrders(
+        sortOrdersByNewest(
+          orders.map((o) => (o.id === updated.id ? updated : o)),
+        ),
+      );
       return updated;
     } else {
       // Create new order - add at beginning (newest first)
-      const created = await guardedCall('order:create', () => createOrder(orderData), has);
+      const created = await guardedCall(
+        "order:create",
+        async () => await createOrder(orderData),
+        has,
+      );
       setOrders([created, ...orders]);
       return created;
     }
@@ -155,15 +183,15 @@ export default function OrdersPage() {
     const results: Order[] = [];
     for (const parsedOrder of parsedOrders) {
       const orderData = {
-        address: '',
-        assignType: 'AI' as const,
+        address: "",
+        assignType: "AI" as const,
         contactPerson: parsedOrder.contactPerson,
         sender: null,
         sender_mobile: null,
         deliveryTime: parsedOrder.deliveryTime,
         price: parsedOrder.price,
         description: parsedOrder.description,
-        status: 'pending' as const,
+        status: "pending" as const,
         mobile: parsedOrder.mobile,
         locationName: null,
         returnTime: parsedOrder.returnTime,
@@ -174,8 +202,13 @@ export default function OrdersPage() {
         dropoffPlaceId: parsedOrder.dropoffLocationId,
         driver: null,
         driverId: null,
+        returnDriver: null,
       };
-      const created = await guardedCall('order:create', () => createOrder(orderData), has);
+      const created = await guardedCall(
+        "order:create",
+        () => createOrder(orderData),
+        has,
+      );
       results.push(created);
     }
     // Sort with newest first after bulk upload
@@ -187,7 +220,9 @@ export default function OrdersPage() {
     setFilters(active ? filterValues : null);
     setLoading(true);
     try {
-      const data = active ? await filterOrders(filterValues) : await getOrders();
+      const data = active
+        ? await filterOrders(filterValues)
+        : await getOrders();
       setOrders(sortOrdersByNewest(data));
     } catch (e) {
       console.error(e);
@@ -216,55 +251,56 @@ export default function OrdersPage() {
   const isFiltered = filters !== null;
 
   return (
-    <DashboardLayout title='سفارشات'>
+    <DashboardLayout title="سفارشات">
       <OrdersFilterContainer
         drivers={drivers}
         onFilter={handleFilter}
         onClear={handleClearFilter}
-        className='hidden md:flex'
+        className="hidden md:flex"
       />
 
-      <Card className='bg-card border-border'>
-        <CardHeader className='flex flex-row items-center justify-between'>
-          <div className='flex items-center gap-3'>
-            <CardTitle className='text-foreground'>مدیریت سفارشات</CardTitle>
-            {isFiltered && <span className='text-sm '>(فیلتر شده: {orders.length} سفارش)</span>}
+      <Card className="bg-card border-border">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-foreground">مدیریت سفارشات</CardTitle>
+            {isFiltered && (
+              <span className="text-sm ">
+                (فیلتر شده: {orders.length} سفارش)
+              </span>
+            )}
           </div>
-          <div className='flex items-center gap-2'>
+          <div className="flex items-center gap-2">
             <OrdersFilterContainer
               drivers={drivers}
               onFilter={handleFilter}
               onClear={handleClearFilter}
-              className='md:hidden'
+              className="md:hidden"
               isDrawer
             />
 
             <Button
-              variant='outline'
+              variant="outline"
               onClick={handlePrintAllOrders}
               disabled={orders.length === 0}
-              className='border-border gap-2'
+              className="border-border gap-2"
             >
-              <Printer className='h-4 w-4' />
-              <span className='hidden sm:inline'>پرینت همه سفارش‌ها</span>
+              <Printer className="h-4 w-4" />
+              <span className="hidden sm:inline">پرینت همه سفارش‌ها</span>
             </Button>
 
-            <PermissionGate permission='order:create'>
+            <PermissionGate permission="order:create">
               <Button
                 onClick={handleAddOrder}
-                className='bg-primary text-primary-foreground'
+                className="bg-primary text-primary-foreground"
               >
-                <Plus className='h-4 w-4' />
+                <Plus className="h-4 w-4" />
               </Button>
             </PermissionGate>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <TableSkeleton
-              columns={7}
-              rows={6}
-            />
+            <TableSkeleton columns={7} rows={6} />
           ) : (
             <OrdersTable
               orders={orders}
@@ -288,23 +324,25 @@ export default function OrdersPage() {
         onAutoPrint={(order) => handlePrintLabel(order)}
       />
 
-      <AlertDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-      >
-        <AlertDialogContent className='bg-card border-border'>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className='text-foreground'>حذف سفارش</AlertDialogTitle>
-            <AlertDialogDescription className=''>
-              آیا مطمئن هستید که می‌خواهید سفارش با کد پیگیری «{orderToDelete?.trackingCode}» را حذف کنید؟ این عمل قابل
-              بازگشت نیست.
+            <AlertDialogTitle className="text-foreground">
+              حذف سفارش
+            </AlertDialogTitle>
+            <AlertDialogDescription className="">
+              آیا مطمئن هستید که می‌خواهید سفارش با کد پیگیری «
+              {orderToDelete?.trackingCode}» را حذف کنید؟ این عمل قابل بازگشت
+              نیست.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className='gap-2 sm:gap-0'>
-            <AlertDialogCancel className='border-border'>انصراف</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="border-border">
+              انصراف
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               حذف
             </AlertDialogAction>

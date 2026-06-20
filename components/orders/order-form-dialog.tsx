@@ -491,6 +491,7 @@ export function OrderFormDialog({
           savedOrder = result as Order;
         }
       } else {
+    console.log('orderData: ', orderData);
         const result = await onSave(orderData);
         if (result && typeof result === "object" && "id" in result) {
           savedId = result.id as number;

@@ -329,6 +329,7 @@ export async function getOrderById(id: number): Promise<Order | null> {
 export async function createOrder(
   order: Omit<Order, "id" | "trackingCode" | "createdAt" | "updatedAt">,
 ): Promise<Order> {
+  console.log('order: ', order);
   const body: Record<string, unknown> = {
     pickupPlace: order.pickupPlaceId,
     dropoffPlace: order.dropoffPlaceId,
@@ -351,10 +352,11 @@ export async function createOrder(
           : new Date(order.returnTime).toISOString(),
     productCode: order.productCode,
     driverId: order.driverId ?? null,
+    returnDriver: order.returnDriverId ?? null,
     price: order.price ?? null,
     userId: getAuthUserId(),
   };
-
+  console.log('body: ', body);
   const res = await fetch(`${BASE_URL}/orders`, {
     method: "POST",
     headers: await headers("order:create"),
