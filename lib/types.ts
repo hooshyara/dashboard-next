@@ -154,8 +154,10 @@ export interface Order {
   pickupPlaceId: number | null;
   dropoffPlaceId: number | null;
   driver: Driver | null;
-  pickupPlaceName: string | null; 
+  pickupPlaceName: string | null;
   driverId?: number | null;
+  returnDriver: Driver | null;
+  returnDriverId?: number | null;
   paymentMethod: PaymentMethod | null;
   paymentTime: Date | null;
   createdAt: Date;

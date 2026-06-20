@@ -164,6 +164,21 @@ export function normalizeOrder(raw: unknown): Order {
   if (!pickupPlaceName && pickupSnap?.address)
     pickupPlaceName = pickupSnap.address;
 
+  const returnDriverRaw = o.returnDriver;
+  let returnDriver =
+    returnDriverRaw && typeof returnDriverRaw === "object"
+      ? normalizeDriver(returnDriverRaw)
+      : null;
+  if (returnDriver && returnDriver.id === 0) returnDriver = null;
+
+  let returnDriverId: number | null = null;
+  if (o.returnDriverId != null) {
+    const id = num(o.returnDriverId, 0);
+    if (id > 0) returnDriverId = id;
+  } else if (returnDriver && returnDriver.id > 0) {
+    returnDriverId = returnDriver.id;
+  }
+
   return {
     id: num(o.id, 0),
     trackingCode: str(o.id, ""),
@@ -189,6 +204,8 @@ export function normalizeOrder(raw: unknown): Order {
     paymentTime: o.paymentTime != null ? parseDate(o.paymentTime) : null,
     driver,
     driverId,
+    returnDriver,
+    returnDriverId,
     createdAt: parseDate(o.createdAt),
     updatedAt: parseDate(o.updatedAt),
   };

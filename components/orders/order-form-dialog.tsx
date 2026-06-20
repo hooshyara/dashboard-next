@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PersianDatePicker } from "@/components/ui/persian-calendar";
 import { LocationSelect } from "@/components/orders/location-select";
 import { EmbeddedMapPicker } from "@/components/orders/embedded-map-picker";
@@ -118,6 +119,7 @@ interface OrderFormDialogProps {
       | Order,
   ) => void | Promise<void> | Promise<Order | void>;
   onLocationCreated?: (location: Location) => void;
+  onAutoPrint?: (order: Order) => void;
 }
 
 const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
@@ -158,7 +160,28 @@ const emptyForm = {
   returnTime: null as Date | null,
   productCode: "",
   driverId: null as number | null,
+  returnDriverId: null as number | null,
 };
+
+const AUTO_PRINT_KEY = "orders.autoPrintAfterCreate";
+
+function getAutoPrint(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(AUTO_PRINT_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setAutoPrint(value: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(AUTO_PRINT_KEY, String(value));
+  } catch {
+    // ignore
+  }
+}
 
 export function OrderFormDialog({
   open,
@@ -168,6 +191,7 @@ export function OrderFormDialog({
   locations,
   onSave,
   onLocationCreated,
+  onAutoPrint,
 }: OrderFormDialogProps) {
   const [formData, setFormData] = useState(emptyForm);
   const [meta, setMeta] = useState<OrderMeta>(EMPTY_ORDER_META);
@@ -175,8 +199,18 @@ export function OrderFormDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [pickupLocationFormOpen, setPickupLocationFormOpen] = useState(false);
   const [dropoffLocationFormOpen, setDropoffLocationFormOpen] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(false);
   const isManualAssignment = formData.assignType === "MANUAL";
   const userId = Number(Cookies.get("userId") ?? 0);
+
+  const handleAssignTypeChange = (value: AssignType) => {
+    setFormData({
+      ...formData,
+      assignType: value,
+      driverId: value === "AI" ? null : formData.driverId,
+      returnDriverId: value === "AI" ? null : formData.returnDriverId,
+    });
+  };
 
   useEffect(() => {
     if (order) {
@@ -217,6 +251,7 @@ export function OrderFormDialog({
         returnTime: order.returnTime ? new Date(order.returnTime) : null,
         productCode: order.productCode || "",
         driverId: order.driverId || null,
+        returnDriverId: order.returnDriverId || null,
         price: order.price || null,
       });
 
@@ -281,6 +316,7 @@ export function OrderFormDialog({
       setFormData(newForm);
       setMeta(EMPTY_ORDER_META);
       setShowErrors(false);
+      setAutoPrint(getAutoPrint());
     }
   }, [order, open, locations]);
 
@@ -371,7 +407,7 @@ export function OrderFormDialog({
     ) {
       return;
     }
-    if (formData.assignType === "MANUAL" && !formData.driverId) return;
+    if (formData.assignType === "MANUAL" && (!formData.driverId || !formData.returnDriverId)) return;
 
     // قوانین کسب‌وکار: سفارش‌دهنده (نام و موبایل) الزامی است
     // if (!meta.placerName.trim() || !meta.placerMobile.trim()) {
@@ -392,6 +428,10 @@ export function OrderFormDialog({
 
     const selectedDriver = formData.driverId
       ? drivers.find((d) => d.id === formData.driverId) || null
+      : null;
+
+    const selectedReturnDriver = formData.returnDriverId
+      ? drivers.find((d) => d.id === formData.returnDriverId) || null
       : null;
 
     // در سفارش متفرقه از آدرس اختصاصی استفاده می‌شود، در غیر این صورت آدرس مقصد پیش‌فرض
@@ -422,6 +462,8 @@ export function OrderFormDialog({
       dropoffPlaceId: formData.dropoffLocationId,
       driver: selectedDriver,
       driverId: formData.driverId,
+      returnDriver: selectedReturnDriver,
+      returnDriverId: formData.returnDriverId,
     };
 
     setIsSaving(true);
@@ -431,6 +473,7 @@ export function OrderFormDialog({
       saveLastReturnTime(formData.returnTime);
 
       let savedId: number | string | undefined;
+      let savedOrder: Order | undefined;
       if (order) {
         const result = await onSave({
           ...orderData,
@@ -444,12 +487,15 @@ export function OrderFormDialog({
             ? result.id
             : order.id
         ) as number;
+        if (result && typeof result === "object" && "id" in result) {
+          savedOrder = result as Order;
+        }
       } else {
         const result = await onSave(orderData);
-        savedId =
-          result && typeof result === "object" && "id" in result
-            ? (result.id as number)
-            : undefined;
+        if (result && typeof result === "object" && "id" in result) {
+          savedId = result.id as number;
+          savedOrder = result as Order;
+        }
       }
 
       // ذخیرهٔ فیلدهای تکمیلی به‌صورت محلی (خارج از قرارداد API)
@@ -458,6 +504,13 @@ export function OrderFormDialog({
       }
 
       onOpenChange(false);
+
+      // پرینت خودکار بعد از ثبت سفارش جدید
+      if (!order && savedOrder && autoPrint && onAutoPrint) {
+        setTimeout(() => {
+          onAutoPrint(savedOrder!);
+        }, 100);
+      }
     } catch (error) {
       console.error("Error saving order:", error);
     } finally {
@@ -475,7 +528,8 @@ export function OrderFormDialog({
     formData.dropoffLocationId != null &&
     // placerValid &&
     miscValid &&
-    !isSaving;
+    !isSaving &&
+    (!isManualAssignment || (!!formData.driverId && !!formData.returnDriverId));
 
   return (
     <>
@@ -829,7 +883,7 @@ export function OrderFormDialog({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="grid gap-2">
                   <Label htmlFor="driver" className="text-foreground">
-                    راننده{isManualAssignment ? " *" : ""}
+                    راننده رفت{isManualAssignment ? " *" : ""}
                   </Label>
                   <Select
                     value={formData.driverId?.toString() || "none"}
@@ -861,18 +915,45 @@ export function OrderFormDialog({
                   </Select>
                 </div>
                 <div className="grid gap-2">
+                  <Label htmlFor="returnDriver" className="text-foreground">
+                    راننده برگشت{isManualAssignment ? " *" : ""}
+                  </Label>
+                  <Select
+                    value={formData.returnDriverId?.toString() || "none"}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        returnDriverId: value === "none" ? null : parseInt(value),
+                      })
+                    }
+                    disabled={!isManualAssignment}
+                  >
+                    <SelectTrigger className="bg-secondary border-border text-foreground w-full">
+                      <SelectValue placeholder="انتخاب راننده برگشت" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="none" className="text-foreground">
+                        بدون راننده
+                      </SelectItem>
+                      {drivers.map((driver) => (
+                        <SelectItem
+                          key={driver.id}
+                          value={driver.id.toString()}
+                          className="text-foreground"
+                        >
+                          {driver.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
                   <Label htmlFor="assignType" className="text-foreground">
                     نوع تخصیص
                   </Label>
                   <Select
                     value={formData.assignType}
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        assignType: value as AssignType,
-                        driverId: value === "AI" ? null : formData.driverId,
-                      })
-                    }
+                    onValueChange={(value) => handleAssignTypeChange(value as AssignType)}
                   >
                     <SelectTrigger className="bg-secondary border-border text-foreground">
                       <SelectValue placeholder="انتخاب نوع تخصیص" />
@@ -948,6 +1029,23 @@ export function OrderFormDialog({
                   rows={3}
                 />
               </div>
+
+              {!order && (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/50 p-3">
+                  <Checkbox
+                    id="autoPrint"
+                    checked={autoPrint}
+                    onCheckedChange={(checked) => {
+                      const value = checked === true;
+                      setAutoPrint(value);
+                    }}
+                    className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <Label htmlFor="autoPrint" className="text-foreground text-sm cursor-pointer">
+                    پرینت خودکار بعد از ثبت سفارش
+                  </Label>
+                </div>
+              )}
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
               <Button

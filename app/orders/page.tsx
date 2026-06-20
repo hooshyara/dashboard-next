@@ -285,6 +285,7 @@ export default function OrdersPage() {
         locations={locations}
         onSave={handleSaveOrder}
         onLocationCreated={handleLocationCreated}
+        onAutoPrint={(order) => handlePrintLabel(order)}
       />
 
       <AlertDialog

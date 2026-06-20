@@ -144,6 +144,8 @@ function mapOrderPartialToApi(order: Partial<Order>): Record<string, unknown> {
   if (order.lng !== undefined) p.lng = order.lng;
   if (order.driverId !== undefined) p.driverId = order.driverId;
   if (order.driver !== undefined) p.driverId = order.driver?.id ?? null;
+  if (order.returnDriverId !== undefined) p.returnDriverId = order.returnDriverId;
+  if (order.returnDriver !== undefined) p.returnDriverId = order.returnDriver?.id ?? null;
   if (order.pickupPlaceId !== undefined) p.pickupPlace = order.pickupPlaceId;
   if (order.dropoffPlaceId !== undefined) p.dropoffPlace = order.dropoffPlaceId;
   return p;

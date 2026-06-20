@@ -11,6 +11,28 @@ interface OrderLabelPrintProps {
   mode: "label" | "receipt";
 }
 
+function formatDateFa(date: Date | string | null | undefined): string {
+  if (!date) return "-";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "-";
+  return new Intl.DateTimeFormat("fa-IR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+function formatTimeFa(date: Date | string | null | undefined): string {
+  if (!date) return "-";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "-";
+  return new Intl.DateTimeFormat("fa-IR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+}
+
 /**
  * نمای چاپ سفارش. روی صفحه پنهان است و فقط هنگام چاپ نمایش داده می‌شود.
  * - برچسب: تاریخ ارسال، مقصد، نام مشتری
@@ -25,9 +47,6 @@ export function OrderLabelPrint({ order, meta, mode }: OrderLabelPrintProps) {
       : order.address;
   const customerName =
     meta?.receiverName || order.contactPerson || meta?.placerName || "-";
-  const deliveryDate = order.deliveryTime
-    ? format(new Date(order.deliveryTime), "yyyy/MM/dd HH:mm")
-    : "-";
 
   return (
     <div className="order-print-container hidden print:block bg-white text-black p-8">
@@ -38,8 +57,12 @@ export function OrderLabelPrint({ order, meta, mode }: OrderLabelPrintProps) {
           </h1>
           <div className="space-y-3 text-base">
             <div className="flex justify-between gap-4">
-              <span className="font-bold">تاریخ ارسال:</span>
-              <span>{deliveryDate}</span>
+              <span className="font-bold">تاریخ سفارش:</span>
+              <span>{formatDateFa(order.deliveryTime)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="font-bold">ساعت سفارش:</span>
+              <span>{formatTimeFa(order.deliveryTime)}</span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="font-bold">نام مشتری:</span>
@@ -59,8 +82,8 @@ export function OrderLabelPrint({ order, meta, mode }: OrderLabelPrintProps) {
               </div>
             )}
             <div className="flex justify-between gap-4">
-              <span className="font-bold">کد پیگیری:</span>
-              <span className="font-mono">{order.trackingCode}</span>
+              <span className="font-bold">کد گل:</span>
+              <span className="font-mono">{order.productCode || "-"}</span>
             </div>
           </div>
         </div>
@@ -117,8 +140,8 @@ export function OrderLabelPrint({ order, meta, mode }: OrderLabelPrintProps) {
               </span>
             </div>
             <div className="flex justify-between gap-4 border-t border-black pt-2">
-              <span className="font-bold">کد پیگیری:</span>
-              <span className="font-mono">{order.trackingCode}</span>
+              <span className="font-bold">کد گل:</span>
+              <span className="font-mono">{order.productCode || "-"}</span>
             </div>
           </div>
           <p className="text-center text-xs mt-6 pt-3 border-t border-black">
