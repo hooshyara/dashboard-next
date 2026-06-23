@@ -222,5 +222,14 @@ export interface Location {
   userId?: number;
 }
 
+export interface TopFamousPlace {
+  id: number;
+  name: string;
+  description?: string | null;
+  lat: number;
+  lng: number;
+  address?: string | null;
+  ordersCount: number;
+}
 
 export type PaymentMethod = "ONLINE" | "CASH" | "CARD" | string;

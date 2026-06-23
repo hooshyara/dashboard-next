@@ -6,17 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Printer, FileText, Users, Package, MapPin } from 'lucide-react';
+import { Printer, FileText, Users, Package, MapPin, TrendingUp } from 'lucide-react';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import {
   Order,
   Driver,
   Location,
+  TopFamousPlace,
   OrderStatus,
   AssignType,
   ORDER_STATUS_LABEL_FA,
   getDisplayedOrderDriver,
 } from '@/lib/types';
-import { getOrders, getDrivers, getLocations } from '@/lib/services';
+import { getOrders, getDrivers, getLocations, getTopFamousPlaces } from '@/lib/services';
 import { format } from 'date-fns-jalali';
 import ReportsFilterContainer from '@/components/reports/reports-filter';
 
@@ -81,6 +88,8 @@ export default function ReportsPage() {
     endDate: null,
   });
   const [appliedFilters, setAppliedFilters] = useState<ReportFilters | null>(null);
+  const [topFamousPlaces, setTopFamousPlaces] = useState<TopFamousPlace[]>([]);
+  const [loadingTopFamous, setLoadingTopFamous] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -94,6 +103,25 @@ export default function ReportsPage() {
     setLocations(locationsData);
     setLoading(false);
   }
+
+  async function loadTopFamous() {
+    setLoadingTopFamous(true);
+    try {
+      const data = await getTopFamousPlaces(10);
+      setTopFamousPlaces(data);
+    } catch (e) {
+      console.error('Failed to load top famous places:', e);
+      setTopFamousPlaces([]);
+    } finally {
+      setLoadingTopFamous(false);
+    }
+  }
+
+  useEffect(() => {
+    if (reportType === 'locations') {
+      loadTopFamous();
+    }
+  }, [reportType]);
 
   // Filter orders based on applied filters
   const filteredOrders = useMemo(() => {
@@ -655,6 +683,70 @@ export default function ReportsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Top Famous Places Chart - only when locations report is active */}
+      {reportType === 'locations' && (
+        <Card className='bg-card border-border mb-4'>
+          <CardHeader>
+            <CardTitle className='text-foreground flex items-center gap-2'>
+              <TrendingUp className='h-5 w-5' />
+              مقاصد پرکاربرد
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingTopFamous ? (
+              <div className='h-[280px] flex items-center justify-center text-muted-foreground'>
+                در حال بارگذاری...
+              </div>
+            ) : topFamousPlaces.length === 0 ? (
+              <div className='h-[280px] flex items-center justify-center text-muted-foreground'>
+                داده‌ای برای نمایش وجود ندارد.
+              </div>
+            ) : (
+              <div className='w-full overflow-x-auto'>
+                <div className='min-w-[400px]'>
+                  <ChartContainer
+                    config={{
+                      ordersCount: { label: 'تعداد سفارش', color: 'var(--chart-1)' },
+                    }}
+                    className='h-[300px] w-full'
+                  >
+                    <BarChart
+                      data={topFamousPlaces}
+                      layout='vertical'
+                      accessibilityLayer
+                      margin={{ left: 100, right: 10, top: 10, bottom: 10 }}
+                    >
+                      <CartesianGrid horizontal={false} strokeDasharray='3 3' />
+                      <XAxis
+                        type='number'
+                        tickLine={false}
+                        axisLine={false}
+                        allowDecimals={false}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        type='category'
+                        dataKey='name'
+                        tickLine={false}
+                        axisLine={false}
+                        width={100}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar
+                        dataKey='ordersCount'
+                        fill='var(--color-ordersCount)'
+                        radius={[0, 6, 6, 0]}
+                      />
+                    </BarChart>
+                  </ChartContainer>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </DashboardLayout>
   );
 }
