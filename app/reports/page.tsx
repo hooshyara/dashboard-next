@@ -19,6 +19,7 @@ import {
 import { getOrders, getDrivers, getLocations } from '@/lib/services';
 import { format } from 'date-fns-jalali';
 import ReportsFilterContainer from '@/components/reports/reports-filter';
+import TopDestinationsChart from '@/components/reports/top-destinations-chart';
 
 type ReportType = 'orders' | 'drivers' | 'locations';
 
@@ -439,6 +440,9 @@ export default function ReportsPage() {
         onClear={handleClearFilter}
         className='hidden md:flex'
       />
+
+      {/* Destinations Report Chart */}
+      {reportType === 'locations' && <TopDestinationsChart limit={10} />}
 
       {/* Results Card */}
       <Card className='bg-card border-border'>

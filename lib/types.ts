@@ -224,3 +224,14 @@ export interface Location {
 
 
 export type PaymentMethod = "ONLINE" | "CASH" | "CARD" | string;
+
+// Top destinations report (GET /places/top-famous)
+export interface TopFamousPlace {
+  id: number;
+  name: string;
+  description?: string | null;
+  lat: number;
+  lng: number;
+  address?: string | null;
+  ordersCount: number;
+}
