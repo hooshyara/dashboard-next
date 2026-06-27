@@ -10,6 +10,7 @@ import {
   Log,
   Location,
   Permission,
+  TopFamousPlace,
 } from "./types";
 import { BASE_URL } from "./api-config";
 import {
@@ -735,7 +736,7 @@ export async function saveDeliveryRouteAssignments(
         /* ignore */
       }
       throw new Error(
-        `POST orders/assign: ${res.status} ${res.statusText}${detail ? ` — ${detail}` : ""}`,
+        `POST orders/assign: ${res.status} ${res.statusText}${detail ? ` ��� ${detail}` : ""}`,
       );
     }
   }
@@ -875,6 +876,33 @@ export async function getLocations(): Promise<Location[]> {
     "locations",
   ]);
   return rows.map(normalizeLocation);
+}
+
+/** پرتکرارترین مقاصد بر اساس تعداد سفارش‌ها (GET /places/top-famous). */
+export async function getTopFamousPlaces(
+  limit: number = 10,
+): Promise<TopFamousPlace[]> {
+  const res = await fetch(`${BASE_URL}/places/top-famous?limit=${limit}`, {
+    headers: await headers("place:read"),
+  });
+  if (!res.ok) {
+    throw new Error(`places/top-famous: ${res.status} ${res.statusText}`);
+  }
+  const body: unknown = await res.json();
+  const rows = unwrapArray<Record<string, unknown>>(body, [
+    "data",
+    "places",
+    "items",
+  ]);
+  return rows.map((row) => ({
+    id: Number(row.id),
+    name: String(row.name ?? ""),
+    description: (row.description as string | null) ?? null,
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+    address: (row.address as string | null) ?? null,
+    ordersCount: Number(row.ordersCount ?? 0),
+  }));
 }
 
 export async function getLocationById(id: number): Promise<Location | null> {
